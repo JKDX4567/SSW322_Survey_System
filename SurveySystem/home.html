@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Survey App - Home</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container" id = "topSetup">
+        <header>
+            <button onclick="location.href='login.html'" class="logout-btn">Logout</button>
+        </header>
+
+            <div class="pageTop">
+                <div class="links">
+                    <button onclick="location.href='settings.html'">Account Settings</button>
+                    <button onclick="location.href='create.html'">Create Survey</button>
+                    <button onclick="location.href='completed.html'">Completed Surveys</button>
+                    <button onclick="location.href='complete.html'">Complete Surveys</button>
+                </div>
+                <img src="pages.png" alt="Notebook" class="top-image">
+            </div>
+
+            <h2>Available Surveys</h2>
+            <div id="public-surveys" class="surveys-list">
+                <!-- Public surveys will be loaded here -->
+            </div>
+            <h2>Your Surveys</h2>
+
+            <div id="surveys-list" class="surveys-list">
+                <!-- Surveys will be loaded here -->
+            </div>
+
+            <div id = "credits">
+                <h3>Created by: </h3>
+                <h3>Matthew, Bowen, and Ghleb </h3>
+            </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!isLoggedIn()) {
+                location.href = 'index.html';
+            }
+            
+            const currentUser = getCurrentUser();
+            document.getElementById('username-display').textContent = currentUser.username;
+            
+            loadUserSurveys();
+            loadPublicSurveys();
+        });
+    </script>
+</body>
+</html>
