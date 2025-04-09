@@ -1,106 +1,120 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Survey App - Home</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <div class="container" id = "topSetup">
-        <header>
-            <button onclick="location.href='login.html'" class="logout-btn">Logout</button>
-        </header>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container" id="topSetup">
+      <header>
+        <button
+          onclick="localStorage.removeItem('currentUser'); location.href='index.html';"
+          class="logout-btn"
+        >
+          Logout
+        </button>
+      </header>
 
-            <div class="pageTop">
-                <div class="links">
-                    <button onclick="location.href='settings.html'">Account Settings</button>
-                    <button onclick="location.href='create.html'">Create Survey</button>
-                    <button onclick="location.href='completed.html'">Completed Surveys</button>
-                    <button onclick="location.href='complete.html'">Complete Surveys</button>
-                </div>
-                <img src="pages.png" alt="Notebook" class="top-image">
-            </div>
+      <div class="pageTop">
+        <div class="links">
+          <button onclick="location.href='settings.html'">
+            Account Settings
+          </button>
+          <button onclick="location.href='create.html'">Create Survey</button>
+          <button onclick="location.href='completed.html'">
+            Completed Surveys
+          </button>
+          <button onclick="location.href='complete.html'">
+            Complete Surveys
+          </button>
+        </div>
+        <img src="pages.png" alt="Notebook" class="top-image" />
+      </div>
 
-            <h2>Available Surveys</h2>
-            <div id="public-surveys" class="surveys-list">
-                <!-- Public surveys will be loaded here -->
-            </div>
-            <h2>Your Surveys</h2>
+      <h2 id="available-header">Available Surveys For You</h2>
+      <div id="available-surveys" class="surveys-list"></div>
 
-            <div id="surveys-list" class="surveys-list">
-                <!-- Surveys will be loaded here -->
-            </div>
+      <h2 id="your-header">Surveys Created By You</h2>
+      <div id="your-surveys" class="surveys-list"></div>
 
-            <div id = "credits">
-                <h3>Created by: </h3>
-                <h3>Matthew, Bowen, and Ghleb </h3>
-            </div>
+      <div id="credits">
+        <h3>Created by:</h3>
+        <h3>Matthew, Bowen, and Ghleb</h3>
+      </div>
     </div>
 
+    <script src="scripts.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            if (!isLoggedIn()) {
-                location.href = 'index.html';
-            }
-            
-            const currentUser = getCurrentUser();
-            document.getElementById('username-display').textContent = currentUser.username;
-            
-            loadUserSurveys();
-            loadPublicSurveys();
-        });
+      document.addEventListener("DOMContentLoaded", () => {
+        if (!isLoggedIn()) {
+          location.href = "index.html";
+          return;
+        }
+
+        const currentUser = getCurrentUser();
+        const surveys = getSurveys();
+
+        const availableContainer = document.getElementById("available-surveys");
+        const yourContainer = document.getElementById("your-surveys");
+
+        const availableSurveys = surveys.filter(
+          (s) => s.createdBy !== currentUser.username
+        );
+        const yourSurveys = surveys.filter(
+          (s) => s.createdBy === currentUser.username
+        );
+
+
+        if (availableSurveys.length === 0) {
+          availableContainer.innerHTML =
+            "<p>No available surveys to complete.</p>";
+        } else {
+          availableSurveys.forEach((survey) => {
+            const div = document.createElement("div");
+            div.className = "survey-card";
+            div.innerHTML = `
+          <h4>${survey.title}</h4>
+          <p>${survey.description || "No description provided."}</p>
+          <button onclick="localStorage.setItem('selectedSurveyId', ${
+            survey.id
+          }); location.href='complete.html';">Take Survey</button>
+        `;
+            availableContainer.appendChild(div);
+          });
+        }
+
+ 
+        if (yourSurveys.length === 0) {
+          yourContainer.innerHTML =
+            "<p>You haven't created any surveys yet.</p>";
+        } else {
+          yourSurveys.forEach((survey) => {
+            const div = document.createElement("div");
+            div.className = "survey-card";
+
+            const title = document.createElement("h4");
+            title.textContent = survey.title;
+            div.appendChild(title);
+
+            const description = document.createElement("p");
+            description.textContent =
+              survey.description || "No description provided.";
+            div.appendChild(description);
+
+            const viewBtn = document.createElement("button");
+            viewBtn.textContent = "View Results";
+            viewBtn.onclick = () => {
+              localStorage.setItem("selectedSurveyId", survey.id);
+              location.href = "completed.html";
+            };
+            div.appendChild(viewBtn);
+
+            yourContainer.appendChild(div);
+          });
+        }
+      });
     </script>
-<script src="scripts.js"></script>
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    if (!isLoggedIn()) {
-      location.href = "index.html";
-      return;
-    }
-
-    const currentUser = getCurrentUser();
-    const surveys = getSurveys();
-
-    const availableContainer = document.getElementById("available-surveys");
-    const yourContainer = document.getElementById("your-surveys");
-
-    const availableSurveys = surveys.filter(s => s.createdBy !== currentUser.username);
-    const yourSurveys = surveys.filter(s => s.createdBy === currentUser.username);
-
-    // Render Available Surveys
-    if (availableSurveys.length === 0) {
-      availableContainer.innerHTML = "<p>No available surveys to complete.</p>";
-    } else {
-      availableSurveys.forEach(survey => {
-        const div = document.createElement("div");
-        div.className = "survey-card";
-        div.innerHTML = `
-          <h4>${survey.title}</h4>
-          <p>${survey.description || "No description provided."}</p>
-          <button onclick="location.href='complete.html'">Take Survey</button>
-        `;
-        availableContainer.appendChild(div);
-      });
-    }
-
-
-    if (yourSurveys.length === 0) {
-      yourContainer.innerHTML = "<p>You haven't created any surveys yet.</p>";
-    } else {
-      yourSurveys.forEach(survey => {
-        const div = document.createElement("div");
-        div.className = "survey-card";
-        div.innerHTML = `
-          <h4>${survey.title}</h4>
-          <p>${survey.description || "No description provided."}</p>
-          <button onclick="location.href='completed.html'">View Results</button>
-        `;
-        yourContainer.appendChild(div);
-      });
-    }
-  });
-</script>
-
-</body>
+  </body>
 </html>
