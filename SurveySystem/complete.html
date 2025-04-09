@@ -1,137 +1,176 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Complete a Survey</title>
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-  <div class="container">
-    <header>
-      <button onclick="location.href='home.html'" class="back-btn">Home</button>
-      <button onclick="location.href='login.html'" class="logout-btn">Logout</button>
-    </header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Complete a Survey</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <button onclick="location.href='home.html'" class="back-btn">
+          Home
+        </button>
+        <button
+          onclick="localStorage.removeItem('currentUser'); location.href='index.html';"
+          class="logout-btn"
+        >
+          Logout
+        </button>
+      </header>
 
-    <div class="pageTop">
-      <div class="links">
-        <button onclick="location.href='settings.html'">Account Settings</button>
-        <button onclick="location.href='create.html'">Create Survey</button>
-        <button onclick="location.href='completed.html'">Completed Surveys</button>
+      <div class="pageTop">
+        <div class="links">
+          <button onclick="location.href='settings.html'">
+            Account Settings
+          </button>
+          <button onclick="location.href='create.html'">Create Survey</button>
+          <button onclick="location.href='completed.html'">
+            Completed Surveys
+          </button>
+        </div>
+        <img src="pages.png" alt="Notebook" class="top-image" />
       </div>
-      <img src="pages.png" alt="Notebook" class="top-image" />
+
+      <h2>Complete a Survey</h2>
+
+      <!-- Dropdown selector -->
+      <div id="survey-picker">
+        <label for="survey-selector">Select a survey to complete:</label>
+        <select id="survey-selector">
+          <option disabled selected>Select a survey</option>
+        </select>
+      </div>
+
+      <!-- Placeholder where survey form will appear -->
+      <div id="survey-form-area"></div>
     </div>
 
-    <h2>Complete a Survey</h2>
-
-    <!-- Dropdown selector -->
-    <div id="survey-picker">
-      <label for="survey-selector">Select a survey to complete:</label>
-      <select id="survey-selector">
-        <option disabled selected>Select a survey</option>
-      </select>
-    </div>
-
-    <!-- Placeholder where survey form will appear -->
-    <div id="survey-form-area"></div>
-  </div>
-
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      if (!isLoggedIn()) {
-        location.href = "index.html";
-        return;
-      }
-
-      const currentUser = getCurrentUser();
-      const allSurveys = getSurveys();
-
-      const dropdown = document.getElementById("survey-selector");
-      const formArea = document.getElementById("survey-form-area");
-
-      const availableSurveys = allSurveys.filter(s => s.createdBy !== currentUser.username);
-
-      if (availableSurveys.length === 0) {
-        dropdown.innerHTML = `<option disabled selected>No surveys available</option>`;
-        return;
-      }
-
-      availableSurveys.forEach(survey => {
-        const option = document.createElement("option");
-        option.value = survey.id;
-        option.textContent = survey.title;
-        dropdown.appendChild(option);
-      });
-
-      dropdown.addEventListener("change", () => {
-        const selectedSurvey = getSurveyById(parseInt(dropdown.value));
-        if (selectedSurvey) {
-          renderSurveyForm(selectedSurvey);
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        if (!isLoggedIn()) {
+          location.href = "index.html";
+          return;
         }
-      });
 
-      function renderSurveyForm(survey) {
-        formArea.innerHTML = `<h3>${survey.title}</h3><form id="survey-form"></form>`;
+        const currentUser = getCurrentUser();
+        const surveys = getSurveys();
+        const selectedId = localStorage.getItem("selectedSurveyId");
 
-        const form = document.getElementById("survey-form");
+        const availableSurveys = surveys.filter(
+          (s) => s.createdBy !== currentUser.username
+        );
+        const formArea = document.getElementById("survey-form-area");
 
-        survey.questions.forEach((question, index) => {
-          const wrapper = document.createElement("div");
-          wrapper.className = "question-block";
-
-          const label = document.createElement("label");
-          label.textContent = `${index + 1}. ${question.text}`;
-          wrapper.appendChild(label);
-
-          if (question.type === "text") {
-            const input = document.createElement("input");
-            input.type = "text";
-            input.name = `q${index}`;
-            wrapper.appendChild(input);
-          } else if (question.type === "multiple-choice") {
-            question.options.forEach(option => {
-              const optionLabel = document.createElement("label");
-              const radio = document.createElement("input");
-              radio.type = "radio";
-              radio.name = `q${index}`;
-              radio.value = option;
-              optionLabel.appendChild(radio);
-              optionLabel.append(option);
-              wrapper.appendChild(optionLabel);
-            });
-          }
-
-          form.appendChild(wrapper);
+        // Always show the survey picker
+        const selector = document.getElementById("survey-selector");
+        availableSurveys.forEach((s) => {
+          const option = document.createElement("option");
+          option.value = s.id;
+          option.textContent = s.title;
+          selector.appendChild(option);
         });
 
-        const submitBtn = document.createElement("button");
-        submitBtn.type = "submit";
-        submitBtn.textContent = "Submit";
-        form.appendChild(submitBtn);
+        // If a survey was pre-selected, try to auto-load it
+        let survey = null;
+        if (selectedId) {
+          survey = availableSurveys.find((s) => s.id == selectedId);
+          localStorage.removeItem("selectedSurveyId");
+          if (survey) {
+            renderSurvey(survey);
+            selector.value = survey.id;
+          }
+        }
 
-        form.onsubmit = (e) => {
-          e.preventDefault();
-          const answers = [];
-          survey.questions.forEach((q, i) => {
-            const input = form.querySelector(`[name="q${i}"]`);
-            answers.push(input ? input.value || "(No answer)" : "(No input)");
+        selector.addEventListener("change", () => {
+          const selected = availableSurveys.find((s) => s.id == selector.value);
+          if (selected) {
+            renderSurvey(selected);
+          }
+        });
+
+        function renderSurvey(survey) {
+          formArea.innerHTML = `
+            <h3 id="survey-title">${survey.title}</h3>
+            <p id="survey-description">${survey.description}</p>
+            <form id="survey-form"></form>
+          `;
+
+          const form = document.getElementById("survey-form");
+
+          survey.questions.forEach((question, index) => {
+            const qDiv = document.createElement("div");
+            qDiv.classList.add("question");
+
+            const qLabel = document.createElement("label");
+            qLabel.textContent = `${index + 1}. ${question.text}`;
+            qDiv.appendChild(qLabel);
+
+            if (question.type === "text") {
+              const input = document.createElement("textarea");
+              input.name = `q${index}`;
+              qDiv.appendChild(input);
+            } else {
+              question.options.forEach((option) => {
+                const optLabel = document.createElement("label");
+                const input = document.createElement("input");
+                input.type = question.type === "single" ? "radio" : "checkbox";
+                input.name = `q${index}`;
+                input.value = option;
+                optLabel.appendChild(input);
+                optLabel.appendChild(document.createTextNode(option));
+                qDiv.appendChild(optLabel);
+              });
+            }
+
+            form.appendChild(qDiv);
           });
 
-          if (!survey.responses) survey.responses = [];
-          survey.responses.push({
-            respondent: currentUser.username,
-            answers,
-            date: new Date().toISOString()
+          const submitBtn = document.createElement("button");
+          submitBtn.type = "submit";
+          submitBtn.textContent = "Submit";
+          form.appendChild(submitBtn);
+
+          form.addEventListener("submit", (e) => {
+            e.preventDefault();
+
+            const answers = [];
+
+            survey.questions.forEach((question, index) => {
+              const name = `q${index}`;
+              if (question.type === "text") {
+                const value = form[name].value.trim();
+                answers.push(value);
+              } else if (question.type === "single") {
+                const selected = form.querySelector(
+                  `input[name="${name}"]:checked`
+                );
+                answers.push(selected ? selected.value : null);
+              } else {
+                const selected = Array.from(
+                  form.querySelectorAll(`input[name="${name}"]:checked`)
+                ).map((el) => el.value);
+                answers.push(selected);
+              }
+            });
+
+            const allSurveys = getSurveys();
+            const idx = allSurveys.findIndex((s) => s.id === survey.id);
+            const newResponse = {
+              respondent: currentUser.username,
+              date: new Date().toISOString(),
+              answers,
+            };
+            allSurveys[idx].responses.push(newResponse);
+            localStorage.setItem("surveys", JSON.stringify(allSurveys));
+            alert("Thank you for completing the survey!");
+            location.href = "home.html";
           });
+        }
+      });
+    </script>
 
-          saveSurveys(allSurveys);
-          alert("Survey submitted successfully!");
-          location.href = "home.html";
-        };
-      }
-    });
-  </script>
-
-  <script src="scripts.js"></script>
-</body>
+    <script src="scripts.js"></script>
+  </body>
 </html>
