@@ -1,265 +1,296 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Survey Responses</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
     <div class="container">
-        <header>
-            <button onclick="location.href='home.html'" class="back-btn">Home</button>
-            <button onclick="location.href='login.html'" class="logout-btn">Logout</button>
-        </header>
+      <header>
+        <button onclick="location.href='home.html'" class="back-btn">
+          Home
+        </button>
+        <button onclick="location.href='login.html'" class="logout-btn">
+          Logout
+        </button>
+      </header>
 
-            <div class="pageTop">
-                <div class="links">
-                    <button onclick="location.href='settings.html'">Account Settings</button>
-                    <button onclick="location.href='create.html'">Create Survey</button>
-                    <button onclick="location.href='complete.html'">Complete Surveys</button>
-                </div>
-                <img src="pages.png" alt="Notebook" class="top-image">
-            </div>
+      <div class="pageTop">
+        <div class="links">
+          <button onclick="location.href='settings.html'">
+            Account Settings
+          </button>
+          <button onclick="location.href='create.html'">Create Survey</button>
+          <button onclick="location.href='complete.html'">
+            Complete Surveys
+          </button>
+        </div>
+        <img src="pages.png" alt="Notebook" class="top-image" />
+      </div>
 
-            <H2>Survey Responses: </H2>
-            <div class="response-summary">
-                <h3>Summary</h3>
-                <div class="summary-stats">
-                    <div class="stat-item">
-                        <span class="stat-value" id="total-responses">0</span>
-                        <span class="stat-label">Total Responses</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-value" id="completion-rate">0%</span>
-                        <span class="stat-label">Completion Rate</span>
-                    </div>
-                </div>
-            </div>
+      <h2>Survey Responses:</h2>
+      <h2 id="survey-title-display"></h2>
+      <p id="survey-description-display"></p>
 
-            <div class="questions-summary" id="questions-summary">
-                <!-- Questions summary will be loaded here -->
-            </div>
+      <div class="response-summary">
+        <h3>Summary</h3>
+        <div class="summary-stats">
+          <div class="stat-item">
+            <span class="stat-value" id="total-responses">0</span>
+            <span class="stat-label">Total Responses</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="completion-rate">0%</span>
+            <span class="stat-label">Completion Rate</span>
+          </div>
+        </div>
+      </div>
 
-            <div class="individual-responses">
-                <h3>Individual Responses</h3>
-                <div id="responses-list">
-                    <!-- Individual responses will be loaded here -->
-                </div>
-            </div>
+      <div class="questions-summary" id="questions-summary">
+        <!-- Questions summary will be loaded here -->
+      </div>
 
+      <div class="individual-responses">
+        <h3>Individual Responses</h3>
+        <div id="responses-list">
+          <!-- Individual responses will be loaded here -->
+        </div>
+      </div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            if (!isLoggedIn()) {
-                location.href = 'index.html';
-            }
-            
-            const urlParams = new URLSearchParams(window.location.search);
-            const surveyId = parseInt(urlParams.get('id'));
-            
-            if (!surveyId) {
-                alert('Invalid survey ID');
-                location.href = 'dashboard.html';
-                return;
-            }
-            
-            const survey = getSurveyById(surveyId);
-            if (!survey) {
-                alert('Survey not found');
-                location.href = 'dashboard.html';
-                return;
-            }
+      document.addEventListener("DOMContentLoaded", () => {
+        if (!isLoggedIn()) {
+          location.href = "index.html";
+        }
+        const currentUser = getCurrentUser();
+        const surveys = getSurveys().filter(
+          (s) => s.createdBy === currentUser.username
+        );
 
-            // Check if current user is the survey creator
-            const currentUser = getCurrentUser();
-            if (survey.createdBy !== currentUser.username) {
-                alert('You can only view responses for surveys you created');
-                location.href = 'dashboard.html';
-                return;
-            }
-            <h2 id="survey-title-display"></h2>
-            <p id="survey-description-display"></p>
-            document.getElementById('survey-title').textContent = survey.title;
-            loadSurveyResponses(survey);
+        if (surveys.length === 0) {
+          document.querySelector(".container").innerHTML +=
+            "<p>No surveys created yet.</p>";
+          return;
+        }
+
+        // Let user pick which survey to view
+        const selector = document.createElement("select");
+        selector.id = "survey-selector";
+        selector.innerHTML = `<option disabled selected>Select a survey</option>`;
+        surveys.forEach((s) => {
+          selector.innerHTML += `<option value="${s.id}">${s.title}</option>`;
+        });
+
+        const container = document.querySelector(".container");
+        const label = document.createElement("label");
+        label.textContent = "Choose a survey:";
+        container.insertBefore(label, container.children[2]);
+        container.insertBefore(selector, container.children[3]);
+
+        selector.addEventListener("change", () => {
+          const selectedSurvey = getSurveyById(parseInt(selector.value));
+          if (selectedSurvey) {
+            document.getElementById("survey-title-display").textContent =
+              selectedSurvey.title;
+            document.getElementById("survey-description-display").textContent =
+              selectedSurvey.description;
+            loadSurveyResponses(selectedSurvey);
+          }
         });
 
         function loadSurveyResponses(survey) {
-            // Update summary stats
-            const totalResponses = survey.responses ? survey.responses.length : 0;
-            document.getElementById('total-responses').textContent = totalResponses;
-            
-            // For completion rate, we'd need to know how many people started vs completed
-            // For simplicity, we'll assume all responses are complete
-            document.getElementById('completion-rate').textContent = '100%';
+          // Update summary stats
+          const totalResponses = survey.responses ? survey.responses.length : 0;
+          document.getElementById("total-responses").textContent =
+            totalResponses;
 
-            // Load questions summary
-            const questionsSummary = document.getElementById('questions-summary');
-            questionsSummary.innerHTML = '';
+          // For completion rate, we'd need to know how many people started vs completed
+          // For simplicity, we'll assume all responses are complete
+          document.getElementById("completion-rate").textContent = "100%";
 
-            survey.questions.forEach((question, qIndex) => {
-                const questionDiv = document.createElement('div');
-                questionDiv.className = 'question-summary';
-                
-                const questionTitle = document.createElement('h4');
-                questionTitle.textContent = `${qIndex + 1}. ${question.text}`;
-                questionDiv.appendChild(questionTitle);
+          // Load questions summary
+          const questionsSummary = document.getElementById("questions-summary");
+          questionsSummary.innerHTML = "";
 
-                if (question.type === 'text') {
-                    // Show sample responses for text questions
-                    const sampleResponses = document.createElement('div');
-                    sampleResponses.className = 'text-responses';
-                    
-                    const sampleTitle = document.createElement('h5');
-                    sampleTitle.textContent = 'Sample Responses:';
-                    sampleResponses.appendChild(sampleTitle);
+          survey.questions.forEach((question, qIndex) => {
+            const questionDiv = document.createElement("div");
+            questionDiv.className = "question-summary";
 
-                    if (survey.responses && survey.responses.length > 0) {
-                        const responsesList = document.createElement('ul');
-                        
-                        // Show up to 5 sample responses
-                        const maxSamples = Math.min(5, survey.responses.length);
-                        for (let i = 0; i < maxSamples; i++) {
-                            const response = survey.responses[i];
-                            const li = document.createElement('li');
-                            li.textContent = response.answers[qIndex] || '(No answer)';
-                            responsesList.appendChild(li);
-                        }
-                        
-                        sampleResponses.appendChild(responsesList);
-                        
-                        if (survey.responses.length > 5) {
-                            const moreText = document.createElement('p');
-                            moreText.textContent = `...and ${survey.responses.length - 5} more responses`;
-                            sampleResponses.appendChild(moreText);
-                        }
-                    } else {
-                        const noResponses = document.createElement('p');
-                        noResponses.textContent = 'No responses yet';
-                        sampleResponses.appendChild(noResponses);
-                    }
-                    
-                    questionDiv.appendChild(sampleResponses);
-                } else {
-                    // Show chart for multiple choice questions
-                    const chartDiv = document.createElement('div');
-                    chartDiv.className = 'response-chart';
-                    
-                    if (survey.responses && survey.responses.length > 0) {
-                        // Count answers
-                        const answerCounts = {};
-                        const totalAnswers = survey.responses.length;
-                        
-                        question.options.forEach(option => {
-                            answerCounts[option] = 0;
-                        });
-                        
-                        survey.responses.forEach(response => {
-                            const answers = Array.isArray(response.answers[qIndex]) ? 
-                                response.answers[qIndex] : 
-                                [response.answers[qIndex]];
-                            
-                            answers.forEach(answer => {
-                                if (answer && answerCounts.hasOwnProperty(answer)) {
-                                    answerCounts[answer]++;
-                                }
-                            });
-                        });
-                        
-                        // Create chart bars
-                        for (const [option, count] of Object.entries(answerCounts)) {
-                            const percentage = Math.round((count / totalAnswers) * 100);
-                            
-                            const optionDiv = document.createElement('div');
-                            optionDiv.className = 'chart-row';
-                            
-                            const optionLabel = document.createElement('span');
-                            optionLabel.className = 'chart-label';
-                            optionLabel.textContent = option;
-                            optionDiv.appendChild(optionLabel);
-                            
-                            const barContainer = document.createElement('div');
-                            barContainer.className = 'chart-bar-container';
-                            
-                            const bar = document.createElement('div');
-                            bar.className = 'chart-bar';
-                            bar.style.width = `${percentage}%`;
-                            
-                            const countLabel = document.createElement('span');
-                            countLabel.className = 'chart-count';
-                            countLabel.textContent = `${count} (${percentage}%)`;
-                            
-                            barContainer.appendChild(bar);
-                            barContainer.appendChild(countLabel);
-                            optionDiv.appendChild(barContainer);
-                            
-                            chartDiv.appendChild(optionDiv);
-                        }
-                    } else {
-                        const noResponses = document.createElement('p');
-                        noResponses.textContent = 'No responses yet';
-                        chartDiv.appendChild(noResponses);
-                    }
-                    
-                    questionDiv.appendChild(chartDiv);
+            const questionTitle = document.createElement("h4");
+            questionTitle.textContent = `${qIndex + 1}. ${question.text}`;
+            questionDiv.appendChild(questionTitle);
+
+            if (question.type === "text") {
+              // Show sample responses for text questions
+              const sampleResponses = document.createElement("div");
+              sampleResponses.className = "text-responses";
+
+              const sampleTitle = document.createElement("h5");
+              sampleTitle.textContent = "Sample Responses:";
+              sampleResponses.appendChild(sampleTitle);
+
+              if (survey.responses && survey.responses.length > 0) {
+                const responsesList = document.createElement("ul");
+
+                // Show up to 5 sample responses
+                const maxSamples = Math.min(5, survey.responses.length);
+                for (let i = 0; i < maxSamples; i++) {
+                  const response = survey.responses[i];
+                  const li = document.createElement("li");
+                  li.textContent = response.answers[qIndex] || "(No answer)";
+                  responsesList.appendChild(li);
                 }
-                
-                questionsSummary.appendChild(questionDiv);
-            });
 
-            // Load individual responses
-            const responsesList = document.getElementById('responses-list');
-            responsesList.innerHTML = '';
+                sampleResponses.appendChild(responsesList);
 
-            if (survey.responses && survey.responses.length > 0) {
-                survey.responses.forEach((response, rIndex) => {
-                    const responseDiv = document.createElement('div');
-                    responseDiv.className = 'individual-response';
-                    
-                    const responseHeader = document.createElement('div');
-                    responseHeader.className = 'response-header';
-                    responseHeader.innerHTML = `
-                        <h4>Response #${rIndex + 1}</h4>
-                        <span class="response-meta">By ${response.respondent} on ${new Date(response.date).toLocaleString()}</span>
-                    `;
-                    responseDiv.appendChild(responseHeader);
-                    
-                    const responseAnswers = document.createElement('div');
-                    responseAnswers.className = 'response-answers';
-                    
-                    survey.questions.forEach((question, qIndex) => {
-                        const answerDiv = document.createElement('div');
-                        answerDiv.className = 'answer-item';
-                        
-                        const questionText = document.createElement('strong');
-                        questionText.textContent = `${qIndex + 1}. ${question.text}`;
-                        answerDiv.appendChild(questionText);
-                        
-                        const answerText = document.createElement('div');
-                        const answer = response.answers[qIndex];
-                        
-                        if (Array.isArray(answer)) {
-                            if (answer.length > 0) {
-                                answerText.textContent = answer.join(', ');
-                            } else {
-                                answerText.textContent = '(No answer)';
-                            }
-                        } else {
-                            answerText.textContent = answer || '(No answer)';
-                        }
-                        
-                        answerDiv.appendChild(answerText);
-                        responseAnswers.appendChild(answerDiv);
-                    });
-                    
-                    responseDiv.appendChild(responseAnswers);
-                    responsesList.appendChild(responseDiv);
-                });
+                if (survey.responses.length > 5) {
+                  const moreText = document.createElement("p");
+                  moreText.textContent = `...and ${
+                    survey.responses.length - 5
+                  } more responses`;
+                  sampleResponses.appendChild(moreText);
+                }
+              } else {
+                const noResponses = document.createElement("p");
+                noResponses.textContent = "No responses yet";
+                sampleResponses.appendChild(noResponses);
+              }
+
+              questionDiv.appendChild(sampleResponses);
             } else {
-                responsesList.innerHTML = '<p>No responses yet for this survey.</p>';
+              // Show chart for multiple choice questions
+              const chartDiv = document.createElement("div");
+              chartDiv.className = "response-chart";
+
+              if (survey.responses && survey.responses.length > 0) {
+                // Count answers
+                const answerCounts = {};
+                const totalAnswers = survey.responses.length;
+
+                question.options.forEach((option) => {
+                  answerCounts[option] = 0;
+                });
+
+                survey.responses.forEach((response) => {
+                  const answers = Array.isArray(response.answers[qIndex])
+                    ? response.answers[qIndex]
+                    : [response.answers[qIndex]];
+
+                  answers.forEach((answer) => {
+                    if (answer && answerCounts.hasOwnProperty(answer)) {
+                      answerCounts[answer]++;
+                    }
+                  });
+                });
+
+                // Create chart bars
+                for (const [option, count] of Object.entries(answerCounts)) {
+                  const percentage = Math.round((count / totalAnswers) * 100);
+
+                  const optionDiv = document.createElement("div");
+                  optionDiv.className = "chart-row";
+
+                  const optionLabel = document.createElement("span");
+                  optionLabel.className = "chart-label";
+                  optionLabel.textContent = option;
+                  optionDiv.appendChild(optionLabel);
+
+                  const barContainer = document.createElement("div");
+                  barContainer.className = "chart-bar-container";
+
+                  const bar = document.createElement("div");
+                  bar.className = "chart-bar";
+                  bar.style.width = `${percentage}%`;
+
+                  const countLabel = document.createElement("span");
+                  countLabel.className = "chart-count";
+                  countLabel.textContent = `${count} (${percentage}%)`;
+
+                  barContainer.appendChild(bar);
+                  barContainer.appendChild(countLabel);
+                  optionDiv.appendChild(barContainer);
+
+                  chartDiv.appendChild(optionDiv);
+                }
+              } else {
+                const noResponses = document.createElement("p");
+                noResponses.textContent = "No responses yet";
+                chartDiv.appendChild(noResponses);
+              }
+
+              questionDiv.appendChild(chartDiv);
             }
+
+            questionsSummary.appendChild(questionDiv);
+          });
+
+          // Load individual responses
+          const responsesList = document.getElementById("responses-list");
+          responsesList.innerHTML = "";
+
+          if (survey.responses && survey.responses.length > 0) {
+            survey.responses.forEach((response, rIndex) => {
+              const responseDiv = document.createElement("div");
+              responseDiv.className = "individual-response";
+
+              const responseHeader = document.createElement("div");
+              responseHeader.className = "response-header";
+              responseHeader.innerHTML = `
+                              <h4>Response #${rIndex + 1}</h4>
+                              <span class="response-meta">By ${
+                                response.respondent
+                              } on ${new Date(
+                response.date
+              ).toLocaleString()}</span>
+                          `;
+              responseDiv.appendChild(responseHeader);
+
+              const responseAnswers = document.createElement("div");
+              responseAnswers.className = "response-answers";
+
+              survey.questions.forEach((question, qIndex) => {
+                const answerDiv = document.createElement("div");
+                answerDiv.className = "answer-item";
+
+                const questionText = document.createElement("strong");
+                questionText.textContent = `${qIndex + 1}. ${question.text}`;
+                answerDiv.appendChild(questionText);
+
+                const answerText = document.createElement("div");
+                const answer = response.answers[qIndex];
+
+                if (Array.isArray(answer)) {
+                  if (answer.length > 0) {
+                    answerText.textContent = answer.join(", ");
+                  } else {
+                    answerText.textContent = "(No answer)";
+                  }
+                } else {
+                  answerText.textContent = answer || "(No answer)";
+                }
+
+                answerDiv.appendChild(answerText);
+                responseAnswers.appendChild(answerDiv);
+              });
+
+              responseDiv.appendChild(responseAnswers);
+              responsesList.appendChild(responseDiv);
+            });
+          } else {
+            responsesList.innerHTML =
+              "<p>No responses yet for this survey.</p>";
+          }
         }
+      });
+    </script>
+    <script src="scripts.js"></script>
+  </body>
+</html>
+
     </script>
 <script src="scripts.js"></script>
 </body>
