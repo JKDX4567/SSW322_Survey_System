@@ -106,3 +106,20 @@ function register() {
     alert('Registered successfully!');
     location.href = 'home.html';
 }
+
+
+function login() {
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value;
+
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const foundUser = users.find(u => u.username === username && u.password === password);
+
+    if (!foundUser) {
+        alert('Invalid username or password');
+        return;
+    }
+
+    localStorage.setItem('currentUser', JSON.stringify(foundUser));
+    location.href = 'home.html';
+}
