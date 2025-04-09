@@ -52,5 +52,55 @@
         });
     </script>
 <script src="scripts.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    if (!isLoggedIn()) {
+      location.href = "index.html";
+      return;
+    }
+
+    const currentUser = getCurrentUser();
+    const surveys = getSurveys();
+
+    const availableContainer = document.getElementById("available-surveys");
+    const yourContainer = document.getElementById("your-surveys");
+
+    const availableSurveys = surveys.filter(s => s.createdBy !== currentUser.username);
+    const yourSurveys = surveys.filter(s => s.createdBy === currentUser.username);
+
+    // Render Available Surveys
+    if (availableSurveys.length === 0) {
+      availableContainer.innerHTML = "<p>No available surveys to complete.</p>";
+    } else {
+      availableSurveys.forEach(survey => {
+        const div = document.createElement("div");
+        div.className = "survey-card";
+        div.innerHTML = `
+          <h4>${survey.title}</h4>
+          <p>${survey.description || "No description provided."}</p>
+          <button onclick="location.href='complete.html'">Take Survey</button>
+        `;
+        availableContainer.appendChild(div);
+      });
+    }
+
+
+    if (yourSurveys.length === 0) {
+      yourContainer.innerHTML = "<p>You haven't created any surveys yet.</p>";
+    } else {
+      yourSurveys.forEach(survey => {
+        const div = document.createElement("div");
+        div.className = "survey-card";
+        div.innerHTML = `
+          <h4>${survey.title}</h4>
+          <p>${survey.description || "No description provided."}</p>
+          <button onclick="location.href='completed.html'">View Results</button>
+        `;
+        yourContainer.appendChild(div);
+      });
+    }
+  });
+</script>
+
 </body>
 </html>
