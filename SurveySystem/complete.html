@@ -1,153 +1,137 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Complete Survey</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Complete a Survey</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <div class="container">
-        <header>
-            <button onclick="location.href='home.html'" class="back-btn">Home</button>
-            <button onclick="location.href='login.html'" class="logout-btn">Logout</button>
-        </header>
+  <div class="container">
+    <header>
+      <button onclick="location.href='home.html'" class="back-btn">Home</button>
+      <button onclick="location.href='login.html'" class="logout-btn">Logout</button>
+    </header>
 
-            <div class="pageTop">
-                <div class="links">
-                    <button onclick="location.href='settings.html'">Account Settings</button>
-                    <button onclick="location.href='create.html'">Create Survey</button>
-                    <button onclick="location.href='completed.html'">Completed Surveys</button>
-                </div>
-                <img src="pages.png" alt="Notebook" class="top-image">
-            </div>
-
-            <h2 id="survey-title-display"></h2>
-            <p id="survey-description-display"></p>
-            <form id="survey-form">
-                <!-- Survey questions will be loaded here -->
-            </form>
-            <button onclick="submitSurvey()" class="submit-btn">Submit Survey</button>
-        
+    <div class="pageTop">
+      <div class="links">
+        <button onclick="location.href='settings.html'">Account Settings</button>
+        <button onclick="location.href='create.html'">Create Survey</button>
+        <button onclick="location.href='completed.html'">Completed Surveys</button>
+      </div>
+      <img src="pages.png" alt="Notebook" class="top-image" />
     </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            if (!isLoggedIn()) {
-                location.href = 'index.html';
-            }
-            
-            const urlParams = new URLSearchParams(window.location.search);
-            const surveyId = parseInt(urlParams.get('id'));
-            
-            if (!surveyId) {
-                alert('Invalid survey ID');
-                location.href = 'home.html';
-                return;
-            }
-            
-            const survey = getSurveyById(surveyId);
-            if (!survey) {
-                alert('Survey not found');
-                location.href = 'home.html';
-                return;
-            }
-            
-            document.getElementById('survey-title-display').textContent = survey.title;
-            document.getElementById('survey-description-display').textContent = survey.description;
-            
-            const form = document.getElementById('survey-form');
-            
-            survey.questions.forEach((question, index) => {
-                const questionDiv = document.createElement('div');
-                questionDiv.className = 'survey-question';
-                
-                const questionLabel = document.createElement('label');
-                questionLabel.textContent = `${index + 1}. ${question.text}`;
-                questionDiv.appendChild(questionLabel);
-                
-                if (question.type === 'text') {
-                    const input = document.createElement('input');
-                    input.type = 'text';
-                    input.name = `q${index}`;
-                    input.required = true;
-                    questionDiv.appendChild(input);
-                } 
-                else if (question.type === 'radio') {
-                    question.options.forEach((option, optIndex) => {
-                        const optionDiv = document.createElement('div');
-                        
-                        const input = document.createElement('input');
-                        input.type = 'radio';
-                        input.name = `q${index}`;
-                        input.value = option;
-                        input.id = `q${index}_${optIndex}`;
-                        input.required = true;
-                        
-                        const label = document.createElement('label');
-                        label.htmlFor = `q${index}_${optIndex}`;
-                        label.textContent = option;
-                        
-                        optionDiv.appendChild(input);
-                        optionDiv.appendChild(label);
-                        questionDiv.appendChild(optionDiv);
-                    });
-                }
-                else if (question.type === 'checkbox') {
-                    question.options.forEach((option, optIndex) => {
-                        const optionDiv = document.createElement('div');
-                        
-                        const input = document.createElement('input');
-                        input.type = 'checkbox';
-                        input.name = `q${index}`;
-                        input.value = option;
-                        input.id = `q${index}_${optIndex}`;
-                        
-                        const label = document.createElement('label');
-                        label.htmlFor = `q${index}_${optIndex}`;
-                        label.textContent = option;
-                        
-                        optionDiv.appendChild(input);
-                        optionDiv.appendChild(label);
-                        questionDiv.appendChild(optionDiv);
-                    });
-                }
-                
-                form.appendChild(questionDiv);
+
+    <h2>Complete a Survey</h2>
+
+    <!-- Dropdown selector -->
+    <div id="survey-picker">
+      <label for="survey-selector">Select a survey to complete:</label>
+      <select id="survey-selector">
+        <option disabled selected>Select a survey</option>
+      </select>
+    </div>
+
+    <!-- Placeholder where survey form will appear -->
+    <div id="survey-form-area"></div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!isLoggedIn()) {
+        location.href = "index.html";
+        return;
+      }
+
+      const currentUser = getCurrentUser();
+      const allSurveys = getSurveys();
+
+      const dropdown = document.getElementById("survey-selector");
+      const formArea = document.getElementById("survey-form-area");
+
+      const availableSurveys = allSurveys.filter(s => s.createdBy !== currentUser.username);
+
+      if (availableSurveys.length === 0) {
+        dropdown.innerHTML = `<option disabled selected>No surveys available</option>`;
+        return;
+      }
+
+      availableSurveys.forEach(survey => {
+        const option = document.createElement("option");
+        option.value = survey.id;
+        option.textContent = survey.title;
+        dropdown.appendChild(option);
+      });
+
+      dropdown.addEventListener("change", () => {
+        const selectedSurvey = getSurveyById(parseInt(dropdown.value));
+        if (selectedSurvey) {
+          renderSurveyForm(selectedSurvey);
+        }
+      });
+
+      function renderSurveyForm(survey) {
+        formArea.innerHTML = `<h3>${survey.title}</h3><form id="survey-form"></form>`;
+
+        const form = document.getElementById("survey-form");
+
+        survey.questions.forEach((question, index) => {
+          const wrapper = document.createElement("div");
+          wrapper.className = "question-block";
+
+          const label = document.createElement("label");
+          label.textContent = `${index + 1}. ${question.text}`;
+          wrapper.appendChild(label);
+
+          if (question.type === "text") {
+            const input = document.createElement("input");
+            input.type = "text";
+            input.name = `q${index}`;
+            wrapper.appendChild(input);
+          } else if (question.type === "multiple-choice") {
+            question.options.forEach(option => {
+              const optionLabel = document.createElement("label");
+              const radio = document.createElement("input");
+              radio.type = "radio";
+              radio.name = `q${index}`;
+              radio.value = option;
+              optionLabel.appendChild(radio);
+              optionLabel.append(option);
+              wrapper.appendChild(optionLabel);
             });
+          }
+
+          form.appendChild(wrapper);
         });
 
-        function submitSurvey() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const surveyId = parseInt(urlParams.get('id'));
-            const survey = getSurveyById(surveyId);
-            
-            const form = document.getElementById('survey-form');
-            const formData = new FormData(form);
-            
-            const responses = [];
-            survey.questions.forEach((question, index) => {
-                if (question.type === 'checkbox') {
-                    const selected = [];
-                    document.querySelectorAll(`input[name="q${index}"]:checked`).forEach(checkbox => {
-                        selected.push(checkbox.value);
-                    });
-                    responses.push(selected);
-                } else {
-                    responses.push(formData.get(`q${index}`));
-                }
-            });
-            
-            const responseData = {
-                respondent: getCurrentUser().username,
-                date: new Date().toISOString(),
-                answers: responses
-            };
-            
-            saveSurveyResponse(surveyId, responseData);
-            alert('Thank you for completing the survey!');
-            location.href = 'home.html';
-        }
-    </script>
-<script src="scripts.js"></script>
+        const submitBtn = document.createElement("button");
+        submitBtn.type = "submit";
+        submitBtn.textContent = "Submit";
+        form.appendChild(submitBtn);
+
+        form.onsubmit = (e) => {
+          e.preventDefault();
+          const answers = [];
+          survey.questions.forEach((q, i) => {
+            const input = form.querySelector(`[name="q${i}"]`);
+            answers.push(input ? input.value || "(No answer)" : "(No input)");
+          });
+
+          if (!survey.responses) survey.responses = [];
+          survey.responses.push({
+            respondent: currentUser.username,
+            answers,
+            date: new Date().toISOString()
+          });
+
+          saveSurveys(allSurveys);
+          alert("Survey submitted successfully!");
+          location.href = "home.html";
+        };
+      }
+    });
+  </script>
+
+  <script src="scripts.js"></script>
 </body>
 </html>
