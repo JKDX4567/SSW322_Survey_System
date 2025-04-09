@@ -1,71 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Create Survey</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
     <div class="container">
-        <header>
-            <button onclick="location.href='home.html'" class="back-btn">Home</button>
-            <button onclick="location.href='login.html'" class="logout-btn">Logout</button>
-        </header>
+      <header>
+        <button onclick="location.href='home.html'" class="back-btn">
+          Home
+        </button>
+        <button
+          onclick="localStorage.removeItem('currentUser'); location.href='index.html';"
+          class="logout-btn"
+        >
+          Logout
+        </button>
+      </header>
 
-            <div class="pageTop">
-                <div class="links">
-                    <button onclick="location.href='settings.html'">Account Settings</button>
-                    <button onclick="location.href='completed.html'">Completed Surveys</button>
-                    <button onclick="location.href='complete.html'">Complete Surveys</button>
-                </div>
-                <img src="pages.png" alt="Notebook" class="top-image">
-            </div>
-
-        <div class="survey-form">
-            <div class="form-group">
-                <label for="survey-title">Survey Title</label>
-                <input type="text" id="survey-title" required>
-            </div>
-            <div class="form-group">
-                <label for="survey-description">Description</label>
-                <textarea id="survey-description" rows="3"></textarea>
-            </div>
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" id="survey-public"> Make survey public
-                </label>
-            </div>
-
-            <h3>Questions</h3>
-            <div id="questions-container">
-                <!-- Questions will be added here -->
-            </div>
-
-            <button onclick="addQuestion()" class="add-btn">Add Question</button>
-            <button onclick="saveSurvey()" class="save-btn">Save Survey</button>
+      <div class="pageTop">
+        <div class="links">
+          <button onclick="location.href='settings.html'">
+            Account Settings
+          </button>
+          <button onclick="location.href='completed.html'">
+            Completed Surveys
+          </button>
+          <button onclick="location.href='complete.html'">
+            Complete Surveys
+          </button>
         </div>
+        <img src="pages.png" alt="Notebook" class="top-image" />
+      </div>
+
+      <div class="survey-form">
+        <div class="form-group">
+          <label for="survey-title">Survey Title</label>
+          <input type="text" id="survey-title" required />
+        </div>
+        <div class="form-group">
+          <label for="survey-description">Description</label>
+          <textarea id="survey-description" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="survey-public" /> Make survey public
+          </label>
+        </div>
+
+        <h3>Questions</h3>
+        <div id="questions-container">
+          <!-- Questions will be added here -->
+        </div>
+
+        <button onclick="addQuestion()" class="add-btn">Add Question</button>
+        <button onclick="saveSurvey()" class="save-btn">Save Survey</button>
+      </div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            if (!isLoggedIn()) {
-                location.href = 'index.html';
-            }
-            
-            // Add first question by default
-            addQuestion();
-        });
+      document.addEventListener("DOMContentLoaded", () => {
+        if (!isLoggedIn()) {
+          location.href = "index.html";
+        }
 
-        function addQuestion() {
-            const questionId = Date.now();
-            const questionsContainer = document.getElementById('questions-container');
-            
-            const questionDiv = document.createElement('div');
-            questionDiv.className = 'question';
-            questionDiv.dataset.id = questionId;
-            
-            questionDiv.innerHTML = `
+    
+        addQuestion();
+      });
+
+      function addQuestion() {
+        const questionId = Date.now();
+        const questionsContainer = document.getElementById(
+          "questions-container"
+        );
+
+        const questionDiv = document.createElement("div");
+        questionDiv.className = "question";
+        questionDiv.dataset.id = questionId;
+
+        questionDiv.innerHTML = `
                 <div class="form-group">
                     <label>Question Text</label>
                     <input type="text" class="question-text" required>
@@ -83,81 +98,91 @@
                 </div>
                 <button onclick="removeQuestion(${questionId})" class="remove-btn">Remove Question</button>
             `;
-            
-            questionsContainer.appendChild(questionDiv);
+
+        questionsContainer.appendChild(questionDiv);
+      }
+
+      function updateOptions(selectElement) {
+        const questionDiv = selectElement.closest(".question");
+        const optionsContainer =
+          questionDiv.querySelector(".options-container");
+
+        if (
+          selectElement.value === "radio" ||
+          selectElement.value === "checkbox"
+        ) {
+          optionsContainer.style.display = "block";
+        } else {
+          optionsContainer.style.display = "none";
+        }
+      }
+
+      function removeQuestion(id) {
+        const questionDiv = document.querySelector(
+          `.question[data-id="${id}"]`
+        );
+        if (questionDiv) {
+          questionDiv.remove();
+        }
+      }
+
+      function saveSurvey() {
+        const title = document.getElementById("survey-title").value.trim();
+        const description = document
+          .getElementById("survey-description")
+          .value.trim();
+        const isPublic = document.getElementById("survey-public").checked;
+
+        if (!title) {
+          alert("Please enter a survey title");
+          return;
         }
 
-        function updateOptions(selectElement) {
-            const questionDiv = selectElement.closest('.question');
-            const optionsContainer = questionDiv.querySelector('.options-container');
-            
-            if (selectElement.value === 'radio' || selectElement.value === 'checkbox') {
-                optionsContainer.style.display = 'block';
-            } else {
-                optionsContainer.style.display = 'none';
-            }
-        }
+        const questions = [];
+        const questionDivs = document.querySelectorAll(".question");
 
-        function removeQuestion(id) {
-            const questionDiv = document.querySelector(`.question[data-id="${id}"]`);
-            if (questionDiv) {
-                questionDiv.remove();
-            }
-        }
+        questionDivs.forEach((div) => {
+          const text = div.querySelector(".question-text").value.trim();
+          const type = div.querySelector(".question-type").value;
+          let options = [];
 
-        function saveSurvey() {
-            const title = document.getElementById('survey-title').value.trim();
-            const description = document.getElementById('survey-description').value.trim();
-            const isPublic = document.getElementById('survey-public').checked;
-            
-            if (!title) {
-                alert('Please enter a survey title');
-                return;
-            }
-            
-            const questions = [];
-            const questionDivs = document.querySelectorAll('.question');
-            
-            questionDivs.forEach(div => {
-                const text = div.querySelector('.question-text').value.trim();
-                const type = div.querySelector('.question-type').value;
-                let options = [];
-                
-                if (type === 'radio' || type === 'checkbox') {
-                    const optionsText = div.querySelector('.question-options').value.trim();
-                    options = optionsText.split('\n').filter(opt => opt.trim());
-                }
-                
-                if (text) {
-                    questions.push({
-                        text,
-                        type,
-                        options
-                    });
-                }
+          if (type === "radio" || type === "checkbox") {
+            const optionsText = div
+              .querySelector(".question-options")
+              .value.trim();
+            options = optionsText.split("\n").filter((opt) => opt.trim());
+          }
+
+          if (text) {
+            questions.push({
+              text,
+              type,
+              options,
             });
-            
-            if (questions.length === 0) {
-                alert('Please add at least one question');
-                return;
-            }
-            
-            const survey = {
-                id: Date.now(),
-                title,
-                description,
-                isPublic,
-                questions,
-                createdBy: getCurrentUser().username,
-                createdAt: new Date().toISOString(),
-                responses: []
-            };
-            
-            saveNewSurvey(survey);
-            alert('Survey saved successfully!');
-            location.href = 'home.html';
+          }
+        });
+
+        if (questions.length === 0) {
+          alert("Please add at least one question");
+          return;
         }
+
+        const survey = {
+          id: Date.now(),
+          title,
+          description,
+          isPublic,
+          questions,
+          createdBy: getCurrentUser().username,
+          createdAt: new Date().toISOString(),
+          responses: [],
+        };
+
+        saveNewSurvey(survey);
+        alert("Survey saved successfully!");
+        location.href = "home.html";
+      }
     </script>
-<script src="scripts.js"></script>
-</body>
+    <script src="scripts.js"></script>
+  </body>
 </html>
