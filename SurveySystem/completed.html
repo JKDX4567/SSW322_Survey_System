@@ -79,7 +79,8 @@
                 location.href = 'dashboard.html';
                 return;
             }
-
+            <h2 id="survey-title-display"></h2>
+            <p id="survey-description-display"></p>
             document.getElementById('survey-title').textContent = survey.title;
             loadSurveyResponses(survey);
         });
