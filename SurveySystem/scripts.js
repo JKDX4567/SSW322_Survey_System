@@ -1,4 +1,3 @@
-
 function isLoggedIn() {
     return localStorage.getItem('currentUser') !== null;
 }
@@ -123,3 +122,4 @@ function login() {
     localStorage.setItem('currentUser', JSON.stringify(foundUser));
     location.href = 'home.html';
 }
+
