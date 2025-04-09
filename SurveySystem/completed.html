@@ -13,7 +13,7 @@
         <button onclick="location.href='home.html'" class="back-btn">
           Home
         </button>
-        <button onclick="location.href='login.html'" class="logout-btn">
+        <button onclick="localStorage.removeItem('currentUser'); location.href='index.html';" class="logout-btn">
           Logout
         </button>
       </header>
@@ -77,7 +77,6 @@
           return;
         }
 
-        // Let user pick which survey to view
         const selector = document.createElement("select");
         selector.id = "survey-selector";
         selector.innerHTML = `<option disabled selected>Select a survey</option>`;
@@ -90,6 +89,19 @@
         label.textContent = "Choose a survey:";
         container.insertBefore(label, container.children[2]);
         container.insertBefore(selector, container.children[3]);
+        const selectedId = parseInt(localStorage.getItem("selectedSurveyId"));
+
+if (selectedId && !isNaN(selectedId)) {
+  const autoSurvey = surveys.find(s => s.id === selectedId);
+  if (autoSurvey) {
+    selector.value = selectedId.toString();
+    document.getElementById("survey-title-display").textContent = autoSurvey.title;
+    document.getElementById("survey-description-display").textContent = autoSurvey.description;
+    loadSurveyResponses(autoSurvey);
+    localStorage.removeItem("selectedSurveyId"); 
+  }
+}
+
 
         selector.addEventListener("change", () => {
           const selectedSurvey = getSurveyById(parseInt(selector.value));
@@ -103,13 +115,12 @@
         });
 
         function loadSurveyResponses(survey) {
-          // Update summary stats
+     
           const totalResponses = survey.responses ? survey.responses.length : 0;
           document.getElementById("total-responses").textContent =
             totalResponses;
 
-          // For completion rate, we'd need to know how many people started vs completed
-          // For simplicity, we'll assume all responses are complete
+ 
           document.getElementById("completion-rate").textContent = "100%";
 
           // Load questions summary
@@ -162,12 +173,12 @@
 
               questionDiv.appendChild(sampleResponses);
             } else {
-              // Show chart for multiple choice questions
+             
               const chartDiv = document.createElement("div");
               chartDiv.className = "response-chart";
 
               if (survey.responses && survey.responses.length > 0) {
-                // Count answers
+
                 const answerCounts = {};
                 const totalAnswers = survey.responses.length;
 
@@ -187,7 +198,7 @@
                   });
                 });
 
-                // Create chart bars
+      
                 for (const [option, count] of Object.entries(answerCounts)) {
                   const percentage = Math.round((count / totalAnswers) * 100);
 
