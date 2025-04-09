@@ -1,140 +1,184 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Account Settings</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
     <div class="container" id="topSetup">
-        <header>
-            <button onclick="location.href='home.html'" class="back-btn">Home</button>
-            <button onclick="location.href='login.html'" class="logout-btn">Logout</button>
-        </header>
+      <header>
+        <button onclick="location.href='home.html'" class="back-btn">
+          Home
+        </button>
+        <button
+          onclick="localStorage.removeItem('currentUser'); location.href='index.html';"
+          class="logout-btn"
+        >
+          Logout
+        </button>
+      </header>
 
-            <div class="pageTop">
-                <div class="links">
-                    <button onclick="location.href='create.html'">Create Survey</button>
-                    <button onclick="location.href='completed.html'">Completed Surveys</button>
-                    <button onclick="location.href='complete.html'">Complete Surveys</button>
-                </div>
-                <img src="pages.png" alt="Notebook" class="top-image">
-            </div>
-
-        <div class="account-settings">
-            <h1>Account Settings</h1>
-            
-            <div class="settings-form">
-                <div class="form-section">
-                    <h2>Change Username</h2>
-                    <div class="form-group">
-                        <label for="new-username">New Username</label>
-                        <input type="text" id="new-username" placeholder="Enter new username">
-                    </div>
-                    <button onclick="updateUsername()" class="save-btn">Update Username</button>
-                </div>
-
-                <div class="form-section">
-                    <h2>Change Password</h2>
-                    <div class="form-group">
-                        <label for="current-password">Current Password</label>
-                        <input type="password" id="current-password" placeholder="Enter current password">
-                    </div>
-                    <div class="form-group">
-                        <label for="new-password">New Password</label>
-                        <input type="password" id="new-password" placeholder="Enter new password">
-                    </div>
-                    <div class="form-group">
-                        <label for="confirm-password">Confirm New Password</label>
-                        <input type="password" id="confirm-password" placeholder="Confirm new password">
-                    </div>
-                    <button onclick="updatePassword()" class="save-btn">Update Password</button>
-                </div>
-            </div>
+      <div class="pageTop">
+        <div class="links">
+          <button onclick="location.href='create.html'">Create Survey</button>
+          <button onclick="location.href='completed.html'">
+            Completed Surveys
+          </button>
+          <button onclick="location.href='complete.html'">
+            Complete Surveys
+          </button>
         </div>
+        <img src="pages.png" alt="Notebook" class="top-image" />
+      </div>
+
+      <div class="account-settings">
+        <h1>Account Settings</h1>
+
+        <div class="settings-form">
+          <div class="form-section">
+            <h2>Change Username</h2>
+            <div class="form-group">
+              <label for="new-username">New Username</label>
+              <input
+                type="text"
+                id="new-username"
+                placeholder="Enter new username"
+              />
+            </div>
+            <button onclick="updateUsername()" class="save-btn">
+              Update Username
+            </button>
+          </div>
+
+          <div class="form-section">
+            <h2>Change Password</h2>
+            <div class="form-group">
+              <label for="current-password">Current Password</label>
+              <input
+                type="password"
+                id="current-password"
+                placeholder="Enter current password"
+              />
+            </div>
+            <div class="form-group">
+              <label for="new-password">New Password</label>
+              <input
+                type="password"
+                id="new-password"
+                placeholder="Enter new password"
+              />
+            </div>
+            <div class="form-group">
+              <label for="confirm-password">Confirm New Password</label>
+              <input
+                type="password"
+                id="confirm-password"
+                placeholder="Confirm new password"
+              />
+            </div>
+            <button onclick="updatePassword()" class="save-btn">
+              Update Password
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script>
-        function updateUsername() {
-            const newUsername = document.getElementById('new-username').value.trim();
-            const currentUser = getCurrentUser();
-            
-            if (!newUsername) {
-                alert('Please enter a new username');
-                return;
-            }
-            
-            // Get all users
-            const users = JSON.parse(localStorage.getItem('users') || '[]');
-            
-            // Check if username already exists
-            if (users.some(u => u.username === newUsername && u.username !== currentUser.username)) {
-                alert('Username already taken');
-                return;
-            }
-            
-            // Update in users array
-            const userIndex = users.findIndex(u => u.username === currentUser.username);
-            if (userIndex !== -1) {
-                users[userIndex].username = newUsername;
-                localStorage.setItem('users', JSON.stringify(users));
-            }
-            
-            // Update current user
-            currentUser.username = newUsername;
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            
-            alert('Username updated successfully!');
-            document.getElementById('new-username').value = '';
+      function updateUsername() {
+        const newUsername = document
+          .getElementById("new-username")
+          .value.trim();
+        const currentUser = getCurrentUser();
+
+        if (!newUsername) {
+          alert("Please enter a new username");
+          return;
         }
-        
-        function updatePassword() {
-            const currentPassword = document.getElementById('current-password').value;
-            const newPassword = document.getElementById('new-password').value;
-            const confirmPassword = document.getElementById('confirm-password').value;
-            const currentUser = getCurrentUser();
-            
-            if (!currentPassword || !newPassword || !confirmPassword) {
-                alert('Please fill in all password fields');
-                return;
-            }
-            
-            if (currentUser.password !== currentPassword) {
-                alert('Current password is incorrect');
-                return;
-            }
-            
-            if (newPassword !== confirmPassword) {
-                alert('New passwords do not match');
-                return;
-            }
-            
-            if (newPassword.length < 6) {
-                alert('Password must be at least 6 characters');
-                return;
-            }
-            
-            // Get all users
-            const users = JSON.parse(localStorage.getItem('users') || '[]');
-            
-            // Update in users array
-            const userIndex = users.findIndex(u => u.username === currentUser.username);
-            if (userIndex !== -1) {
-                users[userIndex].password = newPassword;
-                localStorage.setItem('users', JSON.stringify(users));
-            }
-            
-            // Update current user
-            currentUser.password = newPassword;
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            
-            alert('Password updated successfully!');
-            document.getElementById('current-password').value = '';
-            document.getElementById('new-password').value = '';
-            document.getElementById('confirm-password').value = '';
+
+        // Get all users
+        const users = JSON.parse(localStorage.getItem("users") || "[]");
+
+        // Check if username already exists
+        if (
+          users.some(
+            (u) =>
+              u.username === newUsername && u.username !== currentUser.username
+          )
+        ) {
+          alert("Username already taken");
+          return;
         }
+
+        // Update in users array
+        const userIndex = users.findIndex(
+          (u) => u.username === currentUser.username
+        );
+        if (userIndex !== -1) {
+          users[userIndex].username = newUsername;
+          localStorage.setItem("users", JSON.stringify(users));
+        }
+
+        // Update current user
+        currentUser.username = newUsername;
+        localStorage.setItem("currentUser", JSON.stringify(currentUser));
+
+        alert("Username updated successfully!");
+        document.getElementById("new-username").value = "";
+      }
+
+      function updatePassword() {
+        const currentPassword =
+          document.getElementById("current-password").value;
+        const newPassword = document.getElementById("new-password").value;
+        const confirmPassword =
+          document.getElementById("confirm-password").value;
+        const currentUser = getCurrentUser();
+
+        if (!currentPassword || !newPassword || !confirmPassword) {
+          alert("Please fill in all password fields");
+          return;
+        }
+
+        if (currentUser.password !== currentPassword) {
+          alert("Current password is incorrect");
+          return;
+        }
+
+        if (newPassword !== confirmPassword) {
+          alert("New passwords do not match");
+          return;
+        }
+
+        if (newPassword.length < 6) {
+          alert("Password must be at least 6 characters");
+          return;
+        }
+
+      
+        const users = JSON.parse(localStorage.getItem("users") || "[]");
+
+
+        const userIndex = users.findIndex(
+          (u) => u.username === currentUser.username
+        );
+        if (userIndex !== -1) {
+          users[userIndex].password = newPassword;
+          localStorage.setItem("users", JSON.stringify(users));
+        }
+
+
+        currentUser.password = newPassword;
+        localStorage.setItem("currentUser", JSON.stringify(currentUser));
+
+        alert("Password updated successfully!");
+        document.getElementById("current-password").value = "";
+        document.getElementById("new-password").value = "";
+        document.getElementById("confirm-password").value = "";
+      }
     </script>
-<script src="scripts.js"></script>
-</body>
+    <script src="scripts.js"></script>
+  </body>
 </html>
