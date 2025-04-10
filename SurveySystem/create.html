@@ -12,6 +12,11 @@
         <button onclick="location.href='home.html'" class="back-btn">
           Home
         </button>
+
+        <button class="dark-toggle-btn" onclick="toggleDarkMode()">
+          🌙 Dark Mode
+        </button>
+
         <button
           onclick="localStorage.removeItem('currentUser'); location.href='index.html';"
           class="logout-btn"
@@ -188,5 +193,20 @@
       }
     </script>
     <script src="scripts.js"></script>
+    <script>
+      // Load dark mode from localStorage
+      document.addEventListener("DOMContentLoaded", () => {
+        if (localStorage.getItem("darkMode") === "true") {
+          document.body.classList.add("dark");
+        }
+      });
+    
+      function toggleDarkMode() {
+        document.body.classList.toggle("dark");
+        const isDark = document.body.classList.contains("dark");
+        localStorage.setItem("darkMode", isDark);
+      }
+    </script>
+    
   </body>
 </html>

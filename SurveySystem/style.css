@@ -505,4 +505,126 @@ header {
     font-size: 28px;
     color: #6a0dad;
   }
+
+  /* Dark Mode Base */
+body.dark {
+    background-color: #121212;
+    color: #eee;
+  }
+  
+  /* Containers and Cards */
+  body.dark .container,
+  body.dark .survey-form,
+  body.dark .account-settings,
+  body.dark .responses-container,
+  body.dark .survey-card,
+  body.dark .auth-form {
+    background-color: #1e1e1e;
+    box-shadow: none;
+    border-color: #333;
+    color: #eee;
+  }
+  
+  /* Inputs and Buttons */
+  body.dark input,
+  body.dark textarea,
+  body.dark select {
+    background-color: #2a2a2a;
+    color: #eee;
+    border: 1px solid #444;
+  }
+  
+  body.dark button {
+    background-color: #6a0dad;
+    color: white;
+  }
+  
+  body.dark .logout-btn,
+  body.dark .back-btn,
+  body.dark .nav-btn {
+    background-color: #6a0dad;
+    border-color: white;
+  }
+  
+  /* Dark toggle button */
+  .dark-toggle-btn {
+    background-color: transparent;
+    color: white;
+    border: 1px solid white;
+    margin-left: 10px;
+  }
+  
+  .dark-toggle-btn:hover {
+    background-color: #6a0dad;
+  }
+
+  /* Make page headers and titles adapt to dark mode */
+body.dark h1,
+body.dark h2,
+body.dark h3,
+body.dark h4,
+body.dark h5,
+body.dark h6,
+body.dark label,
+body.dark .stat-label,
+body.dark .response-meta,
+body.dark .chart-label,
+body.dark .answer-item strong {
+  color: #eee;
+}
+
+/* For form section titles (like "Change Password") */
+body.dark .form-section {
+  background-color: #2a2a2a;
+  border-left-color: #6a0dad;
+  color: #eee;
+}
+
+/* For question blocks */
+body.dark .question,
+body.dark .question-summary,
+body.dark .individual-response {
+  background-color: #1d1d1d;
+  color: #eee;
+  border-left-color: #6a0dad;
+}
+
+/* For response bars and summary stats */
+body.dark .chart-bar {
+  background-color: #8e44ad;
+}
+
+body.dark .stat-item {
+  background-color: #2a2a2a;
+}
+
+body.dark .chart-count {
+  color: #ccc;
+}
+
+  /* Light mode default */
+.page-title {
+    text-align: center;
+    margin-bottom: 20px;
+    background-color: #eee;
+    padding: 10px 0;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  
+  .page-title h1 {
+    font-size: 28px;
+    color: #6a0dad;
+  }
+  
+  /* Dark mode override */
+  body.dark .page-title {
+    background-color: #1e1e1e; /* darker background */
+    box-shadow: none;
+  }
+  
+  body.dark .page-title h1 {
+    color: #9b59b6; /* soft purple that's readable in dark */
+  }
+  
   
