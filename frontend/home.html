@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Survey App - Home</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container" id="topSetup">
+      <header>
+
+        <button class="dark-toggle-btn" onclick="toggleDarkMode()">
+          🌙 Dark Mode
+        </button>
+
+        <button
+          onclick="localStorage.removeItem('currentUser'); location.href='index.html';"
+          class="logout-btn"
+        >
+          Logout
+        </button>
+      </header>
+
+      <div class="page-title">
+        <h1>Home Page</h1>
+      </div>
+
+      <div class="pageTop">
+        <div class="links">
+          <button onclick="location.href='settings.html'">
+            Account Settings
+          </button>
+          <button onclick="location.href='create.html'">Create Survey</button>
+          <button onclick="location.href='completed.html'">
+            Completed Surveys
+          </button>
+          <button onclick="location.href='complete.html'">
+            Complete a Survey
+          </button>
+        </div>
+        <img src="pages.png" alt="Notebook" class="top-image" />
+      </div>
+
+      <h2 id="available-header">Available Surveys For You</h2>
+      <div id="available-surveys" class="surveys-list"></div>
+
+      <h2 id="your-header">Surveys Created By You</h2>
+      <div id="your-surveys" class="surveys-list"></div>
+
+      <div id="credits">
+        <h3>Created by:</h3>
+        <h3>Matthew, Bowen, and Gleb</h3>
+      </div>
+    </div>
+
+    <script src="scripts.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        if (!isLoggedIn()) {
+          location.href = "index.html";
+          return;
+        }
+
+        const currentUser = getCurrentUser();
+        const surveys = getSurveys();
+
+        const availableContainer = document.getElementById("available-surveys");
+        const yourContainer = document.getElementById("your-surveys");
+
+        const availableSurveys = surveys.filter(
+          (s) => s.createdBy !== currentUser.username
+        );
+        const yourSurveys = surveys.filter(
+          (s) => s.createdBy === currentUser.username
+        );
+
+
+        if (availableSurveys.length === 0) {
+          availableContainer.innerHTML =
+            "<p>No available surveys to complete.</p>";
+        } else {
+          availableSurveys.forEach((survey) => {
+            const div = document.createElement("div");
+            div.className = "survey-card";
+            div.innerHTML = `
+          <h4>${survey.title}</h4>
+          <p>${survey.description || "No description provided."}</p>
+          <button onclick="localStorage.setItem('selectedSurveyId', ${
+            survey.id
+          }); location.href='complete.html';">Take Survey</button>
+        `;
+            availableContainer.appendChild(div);
+          });
+        }
+
+ 
+        if (yourSurveys.length === 0) {
+          yourContainer.innerHTML =
+            "<p>You haven't created any surveys yet.</p>";
+        } else {
+          yourSurveys.forEach((survey) => {
+            const div = document.createElement("div");
+            div.className = "survey-card";
+
+            const title = document.createElement("h4");
+            title.textContent = survey.title;
+            div.appendChild(title);
+
+            const description = document.createElement("p");
+            description.textContent =
+              survey.description || "No description provided.";
+            div.appendChild(description);
+
+            const viewBtn = document.createElement("button");
+            viewBtn.textContent = "View Results";
+            viewBtn.onclick = () => {
+              localStorage.setItem("selectedSurveyId", survey.id);
+              location.href = "completed.html";
+            };
+            div.appendChild(viewBtn);
+
+            yourContainer.appendChild(div);
+          });
+        }
+      });
+    </script>
+    <script>
+      // Load dark mode from localStorage
+      document.addEventListener("DOMContentLoaded", () => {
+        if (localStorage.getItem("darkMode") === "true") {
+          document.body.classList.add("dark");
+        }
+      });
+    
+      function toggleDarkMode() {
+        document.body.classList.toggle("dark");
+        const isDark = document.body.classList.contains("dark");
+        localStorage.setItem("darkMode", isDark);
+      }
+    </script>
+    
+  </body>
+</html>

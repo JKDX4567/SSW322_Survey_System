@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create Survey</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <button onclick="location.href='home.html'" class="back-btn">
+          Home
+        </button>
+
+        <button class="dark-toggle-btn" onclick="toggleDarkMode()">
+          🌙 Dark Mode
+        </button>
+
+        <button
+          onclick="localStorage.removeItem('currentUser'); location.href='index.html';"
+          class="logout-btn"
+        >
+          Logout
+        </button>
+      </header>
+
+      <div class="page-title">
+        <h1>Create a Survey</h1>
+      </div>
+
+      <div class="pageTop">
+        <div class="links">
+          <button onclick="location.href='settings.html'">
+            Account Settings
+          </button>
+          <button onclick="location.href='completed.html'">
+            Completed Surveys
+          </button>
+          <button onclick="location.href='complete.html'">
+            Complete a Survey
+          </button>
+        </div>
+        <img src="pages.png" alt="Notebook" class="top-image" />
+      </div>
+
+      <div class="survey-form">
+        <div class="form-group">
+          <label for="survey-title">Survey Title</label>
+          <input type="text" id="survey-title" required />
+        </div>
+        <div class="form-group">
+          <label for="survey-description">Description</label>
+          <textarea id="survey-description" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="survey-public" /> Make survey public
+          </label>
+        </div>
+
+        <h3>Questions</h3>
+        <div id="questions-container">
+          <!-- Questions will be added here -->
+        </div>
+
+        <button onclick="addQuestion()" class="add-btn">Add Question</button>
+        <button onclick="saveSurvey()" class="save-btn">Save Survey</button>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        if (!isLoggedIn()) {
+          location.href = "index.html";
+        }
+
+    
+        addQuestion();
+      });
+
+      function addQuestion() {
+        const questionId = Date.now();
+        const questionsContainer = document.getElementById(
+          "questions-container"
+        );
+
+        const questionDiv = document.createElement("div");
+        questionDiv.className = "question";
+        questionDiv.dataset.id = questionId;
+
+        questionDiv.innerHTML = `
+                <div class="form-group">
+                    <label>Question Text</label>
+                    <input type="text" class="question-text" required>
+                </div>
+                <div class="form-group">
+                    <label>Question Type</label>
+                    <select class="question-type" onchange="updateOptions(this)">
+                        <option value="radio">Multiple Choice (Single Answer)</option>
+                        <option value="checkbox">Multiple Choice (Multiple Answers)</option>
+                    </select>
+                </div>
+                <div class="options-container" id="options-${questionId}" style="display: none;">
+                    <label>Options (one per line)</label>
+                    <textarea class="question-options" rows="3"></textarea>
+                </div>
+                <button onclick="removeQuestion(${questionId})" class="remove-btn">Remove Question</button>
+            `;
+
+        questionsContainer.appendChild(questionDiv);
+      }
+
+      function updateOptions(selectElement) {
+        const questionDiv = selectElement.closest(".question");
+        const optionsContainer =
+          questionDiv.querySelector(".options-container");
+
+        if (
+          selectElement.value === "radio" ||
+          selectElement.value === "checkbox"
+        ) {
+          optionsContainer.style.display = "block";
+        } else {
+          optionsContainer.style.display = "none";
+        }
+      }
+
+      function removeQuestion(id) {
+        const questionDiv = document.querySelector(
+          `.question[data-id="${id}"]`
+        );
+        if (questionDiv) {
+          questionDiv.remove();
+        }
+      }
+
+      async function saveSurvey() {
+        const title = document.getElementById("survey-title").value.trim();
+        const description = document.getElementById("survey-description").value.trim();
+        const isPublic = document.getElementById("survey-public").checked;
+
+        if (!title) {
+          alert("Please enter a survey title");
+          return;
+        }
+
+        const questions = [];
+        const questionDivs = document.querySelectorAll(".question");
+
+        questionDivs.forEach((div) => {
+          const text = div.querySelector(".question-text").value.trim();
+          const type = div.querySelector(".question-type").value;
+          let options = [];
+
+          if (type === "radio" || type === "checkbox") {
+            const optionsText = div.querySelector(".question-options").value.trim();
+            options = optionsText.split("\n").filter((opt) => opt.trim());
+          }
+
+          if (text) {
+            questions.push({ text, type, options });
+          }
+        });
+
+        if (questions.length === 0) {
+          alert("Please add at least one question");
+          return;
+        }
+
+        const surveyData = { title, description, isPublic, questions };
+
+        const res = await fetch("http://localhost:3000/api/surveys", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken()}`
+          },
+          body: JSON.stringify(surveyData),
+        });
+
+        const result = await res.json();
+        if (!res.ok) {
+          alert(result.message || "Failed to create survey");
+          return;
+        }
+
+        alert("Survey saved successfully!");
+        location.href = "home.html";
+      }
+    </script>
+    <script src="scripts.js"></script>
+    <script>
+      // Load dark mode from localStorage
+      document.addEventListener("DOMContentLoaded", () => {
+        if (localStorage.getItem("darkMode") === "true") {
+          document.body.classList.add("dark");
+        }
+      });
+    
+      function toggleDarkMode() {
+        document.body.classList.toggle("dark");
+        const isDark = document.body.classList.contains("dark");
+        localStorage.setItem("darkMode", isDark);
+      }
+    </script>
+    
+  </body>
+</html>

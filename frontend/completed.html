@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Survey Responses</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <div class="container">
+      <header>
+        <button onclick="location.href='home.html'" class="back-btn">
+          Home
+        </button>
+        <button class="dark-toggle-btn" onclick="toggleDarkMode()">
+          🌙 Dark Mode
+        </button>
+        <button onclick="localStorage.removeItem('currentUser'); location.href='index.html';" class="logout-btn">
+          Logout
+        </button>
+      </header>
+      
+      <div class="page-title">
+        <h1>Completed Surveys</h1>
+      </div>
+
+      <div class="pageTop">
+        <div class="links">
+          <button onclick="location.href='settings.html'">
+            Account Settings
+          </button>
+          <button onclick="location.href='create.html'">Create Survey</button>
+          <button onclick="location.href='complete.html'">
+            Complete a Survey
+          </button>
+        </div>
+        <img src="pages.png" alt="Notebook" class="top-image" />
+      </div>
+
+      <h2>Survey Responses:</h2>
+      <h2 id="survey-title-display"></h2>
+      <p id="survey-description-display"></p>
+
+      <div class="response-summary">
+        <h3>Summary</h3>
+        <div class="summary-stats">
+          <div class="stat-item">
+            <span class="stat-value" id="total-responses">0</span>
+            <span class="stat-label">Total Responses</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="completion-rate">0%</span>
+            <span class="stat-label">Completion Rate</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="questions-summary" id="questions-summary">
+        <!-- Questions summary will be loaded here -->
+      </div>
+
+      <div class="individual-responses">
+        <h3>Individual Responses</h3>
+        <div id="responses-list">
+          <!-- Individual responses will be loaded here -->
+        </div>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", async () => {
+        if (!isLoggedIn()) {
+          location.href = "index.html";
+          return;
+        }
+    
+        const currentUser = getCurrentUser();
+        let surveys = [];
+    
+        try {
+          const res = await fetch("http://127.0.0.1:3000/api/surveys", {
+            headers: {
+              Authorization: `Bearer ${getToken()}`
+            }
+          });
+          surveys = await res.json();
+        } catch (err) {
+          console.error("Failed to load surveys", err);
+          return alert("Could not load surveys.");
+        }
+    
+        // Filter to only the user's surveys
+        const userSurveys = surveys.filter(
+          (s) => s.createdBy?.toLowerCase() === currentUser.username.toLowerCase()
+        );
+    
+        if (userSurveys.length === 0) {
+          document.querySelector(".container").innerHTML +=
+            "<p>No surveys created yet.</p>";
+          return;
+        }
+    
+        const selector = document.createElement("select");
+        selector.id = "survey-selector";
+        selector.innerHTML = `<option disabled selected>Select a survey</option>`;
+        userSurveys.forEach((s) => {
+          selector.innerHTML += `<option value="${s._id}">${s.title}</option>`;
+        });
+    
+        const container = document.querySelector(".container");
+        const label = document.createElement("label");
+        label.textContent = "Choose a survey:";
+        container.insertBefore(label, container.children[2]);
+        container.insertBefore(selector, container.children[3]);
+    
+        const selectedId = localStorage.getItem("selectedSurveyId");
+        if (selectedId) {
+          const autoSurvey = userSurveys.find(s => s._id === selectedId);
+          if (autoSurvey) {
+            selector.value = autoSurvey._id;
+            displaySurvey(autoSurvey);
+            localStorage.removeItem("selectedSurveyId");
+          }
+        }
+    
+        selector.addEventListener("change", () => {
+          const selectedSurvey = userSurveys.find(s => s._id === selector.value);
+          if (selectedSurvey) {
+            displaySurvey(selectedSurvey);
+          }
+        });
+    
+        function displaySurvey(survey) {
+          document.getElementById("survey-title-display").textContent = survey.title;
+          document.getElementById("survey-description-display").textContent = survey.description;
+    
+          const totalResponses = survey.responses?.length || 0;
+          document.getElementById("total-responses").textContent = totalResponses;
+          document.getElementById("completion-rate").textContent = "100%"; // You can make this dynamic later
+    
+          const questionsSummary = document.getElementById("questions-summary");
+          questionsSummary.innerHTML = "";
+    
+          survey.questions.forEach((question, qIndex) => {
+            const questionDiv = document.createElement("div");
+            questionDiv.className = "question-summary";
+    
+            const questionTitle = document.createElement("h4");
+            questionTitle.textContent = `${qIndex + 1}. ${question.text}`;
+            questionDiv.appendChild(questionTitle);
+    
+            if (question.type === "text") {
+              const sampleResponses = document.createElement("div");
+              sampleResponses.className = "text-responses";
+    
+              const sampleTitle = document.createElement("h5");
+              sampleTitle.textContent = "Sample Responses:";
+              sampleResponses.appendChild(sampleTitle);
+    
+              if (survey.responses?.length > 0) {
+                const responsesList = document.createElement("ul");
+                const maxSamples = Math.min(5, survey.responses.length);
+                for (let i = 0; i < maxSamples; i++) {
+                  const li = document.createElement("li");
+                  li.textContent = survey.responses[i]?.answers[qIndex] || "(No answer)";
+                  responsesList.appendChild(li);
+                }
+                sampleResponses.appendChild(responsesList);
+    
+                if (survey.responses.length > 5) {
+                  const moreText = document.createElement("p");
+                  moreText.textContent = `...and ${survey.responses.length - 5} more`;
+                  sampleResponses.appendChild(moreText);
+                }
+              } else {
+                sampleResponses.innerHTML += "<p>No responses yet</p>";
+              }
+    
+              questionDiv.appendChild(sampleResponses);
+            } else {
+              const chartDiv = document.createElement("div");
+              chartDiv.className = "response-chart";
+    
+              const answerCounts = {};
+              question.options.forEach(opt => (answerCounts[opt] = 0));
+    
+              survey.responses?.forEach((resp) => {
+                const answers = Array.isArray(resp.answers[qIndex])
+                  ? resp.answers[qIndex]
+                  : [resp.answers[qIndex]];
+                answers.forEach(ans => {
+                  if (ans && answerCounts.hasOwnProperty(ans)) {
+                    answerCounts[ans]++;
+                  }
+                });
+              });
+    
+              for (const [option, count] of Object.entries(answerCounts)) {
+                const percentage = totalResponses > 0 ? Math.round((count / totalResponses) * 100) : 0;
+    
+                const optionDiv = document.createElement("div");
+                optionDiv.className = "chart-row";
+    
+                const label = document.createElement("span");
+                label.className = "chart-label";
+                label.textContent = option;
+                optionDiv.appendChild(label);
+    
+                const barContainer = document.createElement("div");
+                barContainer.className = "chart-bar-container";
+    
+                const bar = document.createElement("div");
+                bar.className = "chart-bar";
+                bar.style.width = `${percentage}%`;
+    
+                const countLabel = document.createElement("span");
+                countLabel.className = "chart-count";
+                countLabel.textContent = `${count} (${percentage}%)`;
+    
+                barContainer.appendChild(bar);
+                barContainer.appendChild(countLabel);
+                optionDiv.appendChild(barContainer);
+    
+                chartDiv.appendChild(optionDiv);
+              }
+    
+              questionDiv.appendChild(chartDiv);
+            }
+    
+            questionsSummary.appendChild(questionDiv);
+          });
+    
+          // Individual responses
+          const responsesList = document.getElementById("responses-list");
+          responsesList.innerHTML = "";
+    
+          if (survey.responses?.length > 0) {
+            survey.responses.forEach((resp, rIndex) => {
+              const responseDiv = document.createElement("div");
+              responseDiv.className = "individual-response";
+    
+              const responseHeader = document.createElement("div");
+              responseHeader.className = "response-header";
+              responseHeader.innerHTML = `
+                <h4>Response #${rIndex + 1}</h4>
+                <span class="response-meta">By ${resp.respondent} on ${new Date(resp.date).toLocaleString()}</span>
+              `;
+              responseDiv.appendChild(responseHeader);
+    
+              const responseAnswers = document.createElement("div");
+              responseAnswers.className = "response-answers";
+    
+              survey.questions.forEach((question, qIndex) => {
+                const answerDiv = document.createElement("div");
+                answerDiv.className = "answer-item";
+    
+                const questionText = document.createElement("strong");
+                questionText.textContent = `${qIndex + 1}. ${question.text}`;
+                answerDiv.appendChild(questionText);
+    
+                const answerText = document.createElement("div");
+                const answer = resp.answers[qIndex];
+    
+                if (Array.isArray(answer)) {
+                  answerText.textContent = answer.length > 0 ? answer.join(", ") : "(No answer)";
+                } else {
+                  answerText.textContent = answer || "(No answer)";
+                }
+    
+                answerDiv.appendChild(answerText);
+                responseAnswers.appendChild(answerDiv);
+              });
+    
+              responseDiv.appendChild(responseAnswers);
+              responsesList.appendChild(responseDiv);
+            });
+          } else {
+            responsesList.innerHTML = "<p>No responses yet for this survey.</p>";
+          }
+        }
+      });
+    </script>
+    
+<script src="scripts.js"></script>
+<script>
+  // Load dark mode from localStorage
+  document.addEventListener("DOMContentLoaded", () => {
+    if (localStorage.getItem("darkMode") === "true") {
+      document.body.classList.add("dark");
+    }
+  });
+
+  function toggleDarkMode() {
+    document.body.classList.toggle("dark");
+    const isDark = document.body.classList.contains("dark");
+    localStorage.setItem("darkMode", isDark);
+  }
+</script>
+
+</body>
+</html>

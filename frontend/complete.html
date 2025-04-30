@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Complete a Survey</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <button onclick="location.href='home.html'" class="back-btn">
+          Home
+        </button>
+
+        <button class="dark-toggle-btn" onclick="toggleDarkMode()">
+          🌙 Dark Mode
+        </button>
+
+        <button
+          onclick="localStorage.removeItem('currentUser'); location.href='index.html';"
+          class="logout-btn"
+        >
+          Logout
+        </button>
+      </header>
+
+      <div class="page-title">
+        <h1>Complete a Survey</h1>
+      </div>
+
+      <div class="pageTop">
+        <div class="links">
+          <button onclick="location.href='settings.html'">
+            Account Settings
+          </button>
+          <button onclick="location.href='create.html'">Create Survey</button>
+          <button onclick="location.href='completed.html'">
+            Completed Surveys
+          </button>
+        </div>
+        <img src="pages.png" alt="Notebook" class="top-image" />
+      </div>
+
+      <h2>Complete a Survey</h2>
+
+      <div id="survey-picker">
+        <label for="survey-selector">Select a survey to complete:</label>
+        <select id="survey-selector">
+          <option disabled selected>Select a survey</option>
+        </select>
+      </div>
+
+
+      <div id="survey-form-area"></div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", async () => {
+        if (!isLoggedIn()) {
+          location.href = "index.html";
+          return;
+        }
+    
+        const currentUser = getCurrentUser();
+        const formArea = document.getElementById("survey-form-area");
+        const selector = document.getElementById("survey-selector");
+        let surveys = [];
+    
+        try {
+          const res = await fetch("http://127.0.0.1:3000/api/surveys", {
+            headers: {
+              Authorization: `Bearer ${getToken()}`
+            }
+          });
+          surveys = await res.json();
+          console.log("Fetched surveys:", surveys);
+        } catch (err) {
+          console.error("Failed to fetch surveys", err);
+          return alert("Could not load surveys from server.");
+        }
+    
+        const availableSurveys = surveys.filter(
+          (s) => s.createdBy?.toLowerCase() !== currentUser.username.toLowerCase()
+        );
+    
+        availableSurveys.forEach((s) => {
+          const option = document.createElement("option");
+          option.value = s._id;
+          option.textContent = s.title;
+          selector.appendChild(option);
+        });
+    
+        selector.addEventListener("change", () => {
+          const selected = availableSurveys.find((s) => s._id === selector.value);
+          if (selected) renderSurvey(selected);
+        });
+    
+        const selectedId = localStorage.getItem("selectedSurveyId");
+        if (selectedId) {
+          const survey = availableSurveys.find((s) => s._id === selectedId);
+          localStorage.removeItem("selectedSurveyId");
+          if (survey) {
+            selector.value = survey._id;
+            renderSurvey(survey);
+          }
+        }
+    
+        function renderSurvey(survey) {
+          formArea.innerHTML = `
+            <h3>${survey.title}</h3>
+            <p>${survey.description}</p>
+            <form id="survey-form"></form>
+          `;
+    
+          const form = document.getElementById("survey-form");
+    
+          survey.questions.forEach((question, index) => {
+            const qDiv = document.createElement("div");
+            qDiv.classList.add("question");
+    
+            const qLabel = document.createElement("label");
+            qLabel.textContent = `${index + 1}. ${question.text}`;
+            qDiv.appendChild(qLabel);
+    
+            if (question.type === "text") {
+              const input = document.createElement("textarea");
+              input.name = `q${index}`;
+              qDiv.appendChild(input);
+            } else {
+              question.options.forEach((option) => {
+                const optLabel = document.createElement("label");
+                const input = document.createElement("input");
+                input.type = question.type === "radio" ? "radio" : "checkbox";
+                input.name = `q${index}`;
+                input.value = option;
+                optLabel.appendChild(input);
+                optLabel.appendChild(document.createTextNode(option));
+                qDiv.appendChild(optLabel);
+              });
+            }
+    
+            form.appendChild(qDiv);
+          });
+    
+          const submitBtn = document.createElement("button");
+          submitBtn.type = "submit";
+          submitBtn.textContent = "Submit";
+          form.appendChild(submitBtn);
+    
+          form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+    
+            const answers = [];
+    
+            survey.questions.forEach((question, index) => {
+              const name = `q${index}`;
+              if (question.type === "text") {
+                const value = form[name].value.trim();
+                answers.push(value);
+              } else if (question.type === "radio") {
+                const selected = form.querySelector(`input[name="${name}"]:checked`);
+                answers.push(selected ? selected.value : null);
+              } else {
+                const selected = Array.from(
+                  form.querySelectorAll(`input[name="${name}"]:checked`)
+                ).map((el) => el.value);
+                answers.push(selected);
+              }
+            });
+    
+            try {
+              const res = await fetch(`http://127.0.0.1:3000/api/surveys/${survey._id}/response`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${getToken()}`
+                },
+                body: JSON.stringify({ answers })
+              });
+    
+              const result = await res.json();
+              if (!res.ok) {
+                return alert(result.message || "Failed to submit survey");
+              }
+    
+              alert("Thank you for completing the survey!");
+              location.href = "home.html";
+            } catch (err) {
+              console.error("Error submitting survey:", err);
+              alert("Something went wrong submitting your response.");
+            }
+          });
+        }
+      });
+    </script>
+    
+
+    <script src="scripts.js"></script>
+    <script>
+      // Load dark mode from localStorage
+      document.addEventListener("DOMContentLoaded", () => {
+        if (localStorage.getItem("darkMode") === "true") {
+          document.body.classList.add("dark");
+        }
+      });
+    
+      function toggleDarkMode() {
+        document.body.classList.toggle("dark");
+        const isDark = document.body.classList.contains("dark");
+        localStorage.setItem("darkMode", isDark);
+      }
+    </script>
+    
+  </body>
+</html>
+
