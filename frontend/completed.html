@@ -30,7 +30,10 @@
           <button onclick="location.href='settings.html'">
             Account Settings
           </button>
-          <button onclick="location.href='create.html'">Create Survey</button>
+          <button onclick="
+          localStorage.removeItem('editSurveyId');
+          location.href='create.html'">
+          Create Survey</button>
           <button onclick="location.href='complete.html'">
             Complete a Survey
           </button>

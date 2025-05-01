@@ -31,7 +31,10 @@
 
       <div class="pageTop">
         <div class="links">
-          <button onclick="location.href='create.html'">Create Survey</button>
+          <button onclick="
+          localStorage.removeItem('editSurveyId');
+          location.href='create.html'">
+          Create Survey</button>
           <button onclick="location.href='completed.html'">
             Completed Surveys
           </button>
@@ -47,6 +50,7 @@
         <div class="settings-form">
           <div class="form-section">
             <h2>Change Username</h2>
+            <p id="current-user" class="meta"></p>
             <div class="form-group">
               <label for="new-username">New Username</label>
               <input
@@ -201,6 +205,13 @@
         const isDark = document.body.classList.contains("dark");
         localStorage.setItem("darkMode", isDark);
       }
+      document.addEventListener('DOMContentLoaded', () => {
+        const user = getCurrentUser();            // your helper in scripts.js
+        if (user) {
+            document.getElementById('current-user')
+                    .textContent = `Signed in as ${user.username}`;
+        }
+    });
     </script>
     
   </body>

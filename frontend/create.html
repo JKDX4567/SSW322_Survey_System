@@ -18,7 +18,11 @@
         </button>
 
         <button
-          onclick="localStorage.removeItem('currentUser'); location.href='index.html';"
+        onclick="
+          localStorage.removeItem('currentUser');
+          localStorage.removeItem('editSurveyId');
+          location.href='index.html';
+          "
           class="logout-btn"
         >
           Logout
@@ -65,18 +69,99 @@
         </div>
 
         <button onclick="addQuestion()" class="add-btn">Add Question</button>
-        <button onclick="saveSurvey()" class="save-btn">Save Survey</button>
+        <button onclick="saveSurvey(event)" class="save-btn">Save Survey</button>
       </div>
     </div>
-
+    <script src="scripts.js"></script>
     <script>
+
+
+      
+    const editingId = localStorage.getItem('editSurveyId');  // set from Home page
+
+    if (editingId) {
+        fetch(`http://127.0.0.1:3000/api/surveys/${editingId}`, {
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        })
+        .then(r => r.json())
+        .then(populateForm)
+        .catch(console.error);
+    }
+
+    function populateForm(s) {
+        /* header fields */
+        document.getElementById('survey-title').value       = s.title;
+        document.getElementById('survey-description').value = s.description;
+        document.getElementById('survey-public').checked    = !!s.isPublic;
+
+        /* questions */
+        const box = document.getElementById('questions-container');
+        box.innerHTML = '';   // clear default template
+
+        s.questions.forEach(q => {
+            addQuestion();                     // your existing helper
+            const qDiv = box.lastElementChild; // grab the block we just added
+
+            qDiv.querySelector('.question-text').value  = q.text;
+            qDiv.querySelector('.question-type').value  = q.type;
+
+            if (q.type !== 'text') {
+                qDiv.querySelector('.question-options').value = q.options.join('\n');
+                qDiv.querySelector('.options-container').style.display = 'block';
+            }
+        });
+    }
+
+    /* ── tweak saveSurvey() so PUT <=> POST ──────────────────── */
+    function saveSurvey(evt) {
+      evt.preventDefault();
+
+      /* -------- build the survey object the same way -------- */
+      const survey = {
+          title       : document.getElementById('survey-title').value.trim(),
+          description : document.getElementById('survey-description').value.trim(),
+          isPublic    : document.getElementById('survey-public').checked,
+          questions   : Array.from(document.querySelectorAll('.question')).map(block => {
+              const type = block.querySelector('.question-type').value;
+              return {
+                  text    : block.querySelector('.question-text').value.trim(),
+                  type,
+                  options : type === 'text'
+                              ? []                                           // no options for free-text
+                              : block.querySelector('.question-options')
+                                     .value.split('\n').map(x => x.trim()).filter(Boolean)
+              };
+          })
+      };
+
+      /* -------- decide between POST and PUT -------- */
+      const method   = editingId ? 'PUT'  : 'POST';
+      const endpoint = editingId ? `/api/surveys/${editingId}` : '/api/surveys';
+
+      fetch(`http://127.0.0.1:3000${endpoint}`, {
+          method,
+          headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${getToken()}`
+          },
+          body: JSON.stringify(survey)
+      })
+      .then(res => {
+          if (!res.ok) throw new Error('Server error');
+          localStorage.removeItem('editSurveyId');   // clean up the flag
+          window.location = 'home.html';
+      })
+      .catch(err => alert('Could not save survey: ' + err.message));
+  }
+      
       document.addEventListener("DOMContentLoaded", () => {
         if (!isLoggedIn()) {
           location.href = "index.html";
         }
 
     
-        addQuestion();
+        if (!editingId) addQuestion();
+
       });
 
       function addQuestion() {
@@ -97,6 +182,7 @@
                 <div class="form-group">
                     <label>Question Type</label>
                     <select class="question-type" onchange="updateOptions(this)">
+                        <option value="text">Short Answer&nbsp;(free text)</option>
                         <option value="radio">Multiple Choice (Single Answer)</option>
                         <option value="checkbox">Multiple Choice (Multiple Answers)</option>
                     </select>
@@ -134,7 +220,7 @@
           questionDiv.remove();
         }
       }
-
+      /*
       async function saveSurvey() {
         const title = document.getElementById("survey-title").value.trim();
         const description = document.getElementById("survey-description").value.trim();
@@ -187,9 +273,9 @@
 
         alert("Survey saved successfully!");
         location.href = "home.html";
-      }
+      }*/
     </script>
-    <script src="scripts.js"></script>
+
     <script>
       // Load dark mode from localStorage
       document.addEventListener("DOMContentLoaded", () => {

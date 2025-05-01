@@ -15,9 +15,13 @@
         </button>
 
         <button
-          onclick="localStorage.removeItem('currentUser'); location.href='index.html';"
-          class="logout-btn"
-        >
+        onclick="
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('editSurveyId');
+        location.href='index.html';
+           "
+           class="logout-btn"
+         >
           Logout
         </button>
       </header>
@@ -31,8 +35,9 @@
           <button onclick="location.href='settings.html'">
             Account Settings
           </button>
-          <button onclick="location.href='create.html'">Create Survey</button>
-          <button onclick="location.href='completed.html'">
+          <button
+          onclick="localStorage.removeItem('editSurveyId'); location.href='create.html';">Create Survey</button>
+                  <button onclick="location.href='completed.html'">
             Completed Surveys
           </button>
           <button onclick="location.href='complete.html'">
@@ -56,74 +61,120 @@
 
     <script src="scripts.js"></script>
     <script>
-      document.addEventListener("DOMContentLoaded", () => {
+      document.addEventListener('DOMContentLoaded', async () => {
+        /* guard: must be logged in */
         if (!isLoggedIn()) {
-          location.href = "index.html";
-          return;
+            window.location = 'index.html';
+            return;
         }
 
-        const currentUser = getCurrentUser();
-        const surveys = getSurveys();
+        const me = getCurrentUser();
+        let surveys = [];
 
-        const availableContainer = document.getElementById("available-surveys");
-        const yourContainer = document.getElementById("your-surveys");
-
-        const availableSurveys = surveys.filter(
-          (s) => s.createdBy !== currentUser.username
-        );
-        const yourSurveys = surveys.filter(
-          (s) => s.createdBy === currentUser.username
-        );
-
-
-        if (availableSurveys.length === 0) {
-          availableContainer.innerHTML =
-            "<p>No available surveys to complete.</p>";
-        } else {
-          availableSurveys.forEach((survey) => {
-            const div = document.createElement("div");
-            div.className = "survey-card";
-            div.innerHTML = `
-          <h4>${survey.title}</h4>
-          <p>${survey.description || "No description provided."}</p>
-          <button onclick="localStorage.setItem('selectedSurveyId', ${
-            survey.id
-          }); location.href='complete.html';">Take Survey</button>
-        `;
-            availableContainer.appendChild(div);
-          });
+        /* fetch every survey in the system */
+        try {
+            const r = await fetch('http://127.0.0.1:3000/api/surveys', {
+                headers: { 'Authorization': `Bearer ${getToken()}` }
+            });
+            surveys = await r.json();
+        } catch (e) {
+            console.error(e);
+            alert('Could not load surveys from server.');
+            return;
         }
 
- 
-        if (yourSurveys.length === 0) {
-          yourContainer.innerHTML =
-            "<p>You haven't created any surveys yet.</p>";
-        } else {
-          yourSurveys.forEach((survey) => {
-            const div = document.createElement("div");
-            div.className = "survey-card";
+        /* split list */
+        const available = surveys.filter(
+              s => (s.createdBy || '').toLowerCase() !== me.username.toLowerCase());
+        const mine      = surveys.filter(
+              s => (s.createdBy || '').toLowerCase() === me.username.toLowerCase());
 
-            const title = document.createElement("h4");
-            title.textContent = survey.title;
-            div.appendChild(title);
+        /* render both lists */
+        renderList('available-surveys', available, false);
+        renderList('your-surveys',      mine,      true);
 
-            const description = document.createElement("p");
-            description.textContent =
-              survey.description || "No description provided.";
-            div.appendChild(description);
+                /* helper ---------- */
+                function renderList(targetId, list, editable) {
+                  const host = document.getElementById(targetId);
+                  host.innerHTML = '';
+      
+                  if (!list.length) {
+                      host.innerHTML =
+                          `<p>${editable
+                              ? 'You have not created any surveys yet.'
+                              : 'No surveys available right now.'}</p>`;
+                      return;
+                  }
+      
+                  list.forEach(s => {
+                      const card = document.createElement('div');
+                      card.className = 'survey-card';
+      
+                      card.innerHTML = `
+                          <h4>${s.title}</h4>
+                          <p>${s.description || ''}</p>
+                      `;
+      
+                      /* ── buttons ─────────────────────────────────────────── */
+                      if (editable) {
+                          /* Edit button */
+                          const editBtn = document.createElement('button');
+                          editBtn.textContent = 'Edit Survey';
+                          editBtn.addEventListener('click', () => {
+                              localStorage.setItem('editSurveyId', s._id);
+                              window.location = 'create.html';
+                          });
+      
+                          /* Delete button */
+                          const delBtn = document.createElement('button');
+                          delBtn.textContent = 'Delete';
+                          delBtn.className   = 'danger';
+                          delBtn.addEventListener('click', async () => {
+                            if (!confirm('Delete this survey permanently?')) return;
 
-            const viewBtn = document.createElement("button");
-            viewBtn.textContent = "View Results";
-            viewBtn.onclick = () => {
-              localStorage.setItem("selectedSurveyId", survey.id);
-              location.href = "completed.html";
-            };
-            div.appendChild(viewBtn);
+                            try {
+                              const r = await fetch(`http://127.0.0.1:3000/api/surveys/${s._id}`, {
+                                method : 'DELETE',
+                                headers: { Authorization: `Bearer ${getToken()}` }
+                              });
+                              if (!r.ok) {
+                                const msg = await r.text();
+                                throw new Error(msg || 'Server error');
+                              }
 
-            yourContainer.appendChild(div);
-          });
-        }
-      });
+                              /* 1️⃣  splice out the deleted survey */
+                              const arr = editable ? mine : available;
+                              const idx = arr.findIndex(x => x._id === s._id);
+                              if (idx !== -1) arr.splice(idx, 1);
+
+                              /* 2️⃣  rerender that block only */
+                              renderList(targetId, arr, editable);
+                            } catch (e) {
+                              alert('Could not delete survey.\n' + e.message);
+                            }
+                          });
+
+      
+                          card.appendChild(editBtn);
+                          card.appendChild(delBtn);
+      
+                      } else {
+                          /* Take-survey button */
+                          const takeBtn = document.createElement('button');
+                          takeBtn.textContent = 'Take Survey';
+                          takeBtn.addEventListener('click', () => {
+                              localStorage.setItem('selectedSurveyId', s._id);
+                              window.location = 'complete.html';
+                          });
+      
+                          card.appendChild(takeBtn);
+                      }
+      
+                      host.appendChild(card);
+                  });
+              }
+      
+    });
     </script>
     <script>
       // Load dark mode from localStorage

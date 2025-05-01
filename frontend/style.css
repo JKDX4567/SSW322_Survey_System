@@ -627,4 +627,11 @@ body.dark .chart-count {
     color: #9b59b6; /* soft purple that's readable in dark */
   }
   
+  button.danger {
+    background: #c0392b;   /* red */
+    color: #fff;
+  }
+  button.danger:hover {
+    background: #e74c3c;
+  }
   
